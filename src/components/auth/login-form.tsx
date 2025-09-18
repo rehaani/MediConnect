@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { UserRole } from "@/lib/auth";
+import { loginWithWebAuthn } from "@/lib/webauthn";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -66,12 +67,32 @@ export default function LoginForm() {
     router.push(rolePaths[values.role]);
   }
 
-  function handleBiometricAuth() {
-    toast({
-      title: "Biometric Authentication",
-      description:
-        "This feature is not yet implemented. It would use the WebAuthn API to provide a secure, passwordless login experience.",
-    });
+  async function handleBiometricAuth() {
+    try {
+        const success = await loginWithWebAuthn();
+        if (success) {
+            toast({
+                title: "Biometric Sign-in Successful",
+                description: "You are now signed in.",
+            });
+            // Redirect to the appropriate dashboard based on user role after successful sign-in
+            router.push('/provider-dashboard');
+        } else {
+             toast({
+                variant: "destructive",
+                title: "Biometric Sign-in Failed",
+                description: "Could not verify your identity. Please try again or use your password.",
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({
+            variant: "destructive",
+            title: "Biometric Sign-in Error",
+            description: errorMessage,
+        });
+    }
   }
 
   return (

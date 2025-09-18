@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { Save } from "lucide-react";
+import { Save, Fingerprint } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,9 +22,11 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
+  CardFooter
 } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Textarea } from "@/components/ui/textarea";
+import { registerWebAuthn } from "@/lib/webauthn";
 
 const profileSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
@@ -55,6 +57,32 @@ export default function ProfileForm() {
       description: "Your information has been saved successfully.",
     });
     console.log(values);
+  }
+
+  async function handleBiometricRegistration() {
+    try {
+        const success = await registerWebAuthn();
+        if (success) {
+            toast({
+                title: "Biometric Sign-in Enabled",
+                description: "You can now sign in using your device's biometrics.",
+            });
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Biometric Registration Failed",
+                description: "Could not set up biometric sign-in. Please try again.",
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        const errorMessage = error instanceof Error ? error.message : "An unknown error occurred.";
+        toast({
+            variant: "destructive",
+            title: "Biometric Registration Error",
+            description: errorMessage,
+        });
+    }
   }
 
   return (
@@ -159,6 +187,15 @@ export default function ProfileForm() {
           </form>
         </Form>
       </CardContent>
+      <CardFooter className="flex-col gap-4 border-t pt-6">
+        <h3 className="font-headline text-lg">Security Settings</h3>
+        <Button variant="outline" onClick={handleBiometricRegistration}>
+            <Fingerprint className="mr-2" /> Enable Biometric Sign-in
+        </Button>
+        <p className="text-sm text-muted-foreground text-center">
+            Enable passwordless sign-in using your device's security features (e.g., fingerprint, face ID).
+        </p>
+      </CardFooter>
     </Card>
   );
 }
