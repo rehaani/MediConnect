@@ -10,7 +10,7 @@
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
-export const FindDoctorInputSchema = z.object({
+const FindDoctorInputSchema = z.object({
   symptoms: z.string().describe('A detailed description of the user\'s symptoms.'),
   consultationMode: z.enum(['video', 'chat', 'in-person']).describe('The desired mode of consultation.'),
   userContext: z.object({
@@ -28,7 +28,7 @@ const DoctorSchema = z.object({
     nextAvailable: z.string().describe('The next available time slot for the doctor, e.g., "Today at 4:00 PM".'),
 });
 
-export const FindDoctorOutputSchema = z.object({
+const FindDoctorOutputSchema = z.object({
     doctors: z.array(DoctorSchema).describe('A list of up to 3 recommended doctors.'),
 });
 export type FindDoctorOutput = z.infer<typeof FindDoctorOutputSchema>;
