@@ -1,4 +1,4 @@
 import { config } from 'dotenv';
 config();
 
-import '@/ai/flows/emergency-routing-decision.ts';
+import '@/ai/flows/health-assessment-flow.ts';

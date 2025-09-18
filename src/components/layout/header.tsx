@@ -18,7 +18,7 @@ const navItems = [
   { label: 'Profile', href: '/profile' },
   { label: 'Family', href: '/family' },
   { label: 'Symptom Tracker', href: '/symptom-tracker'},
-  { label: 'Emergency Tool', href: '/emergency-routing' },
+  { label: 'Health Assessor', href: '/emergency-routing' },
 ];
 
 export default async function Header() {
