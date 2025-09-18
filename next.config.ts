@@ -30,12 +30,10 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  experimental: {
-    // This is to allow cross-origin requests in development.
-    allowedDevOrigins: [
-      'https://6000-firebase-studio-1758200494480.cluster-y3k7ko3fang56qzieg3trwgyfg.cloudworkstations.dev',
-    ],
-  },
+  // This is to allow cross-origin requests in development.
+  allowedDevOrigins: [
+    'https://6000-firebase-studio-1758200494480.cluster-y3k7ko3fang56qzieg3trwgyfg.cloudworkstations.dev',
+  ],
 };
 
 export default nextConfig;
