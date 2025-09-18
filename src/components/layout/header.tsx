@@ -9,20 +9,43 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { CircleUser, LifeBuoy, LogOut, Settings, User } from 'lucide-react';
+import { LifeBuoy, LogOut, Settings, User } from 'lucide-react';
 import Logo from './logo';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, UserRole } from '@/lib/auth';
+import { MainNav } from './main-nav';
 
-const navItems = [
-  { label: 'Dashboard', href: '/dashboard' },
-  { label: 'Profile', href: '/profile' },
-  { label: 'Family', href: '/family' },
-  { label: 'Symptom Tracker', href: '/symptom-tracker'},
-  { label: 'Health Assessor', href: '/emergency-routing' },
-  { label: 'Appointments', href: '/appointments' },
-  { label: 'Video Consultation', href: '/video-consultation'},
-  { label: 'Medications', href: '/medications' },
+const patientNavItems = [
+    { title: 'Dashboard', href: '/patient-dashboard' },
+    { title: 'Appointments', href: '/appointments' },
+    { title: 'Symptom Tracker', href: '/symptom-tracker' },
+    { title: 'Medications', href: '/medications' },
+    { title: 'Health Assessor', href: '/emergency-routing' },
+    { title: 'Profile', href: '/profile' },
+    { title: 'Family', href: '/family' },
+    { title: 'Video Consultation', href: '/video-consultation'},
 ];
+
+const providerNavItems = [
+    { title: 'Dashboard', href: '/provider-dashboard' },
+    { title: 'Appointments', href: '/appointments' },
+    { title: 'Patients', href: '#' },
+    { title: 'Schedule', href: '#' },
+];
+
+const adminNavItems = [
+    { title: 'Dashboard', href: '/admin-dashboard' },
+    { title: 'Users', href: '#' },
+    { title: 'Providers', href: '#' },
+    { title: 'Analytics', href: '#' },
+    { title: 'Settings', href: '#' },
+];
+
+const navItems: Record<UserRole, { title: string; href: string }[]> = {
+    patient: patientNavItems,
+    provider: providerNavItems,
+    admin: adminNavItems,
+};
+
 
 export default async function Header() {
   const user = await getCurrentUser();
@@ -31,32 +54,17 @@ export default async function Header() {
     .map((n) => n[0])
     .join('');
 
+  const roleNavItems = navItems[user.role] || [];
+  const dashboardPath = `/${user.role}-dashboard`;
+
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
-        <div className="mr-4 hidden md:flex">
-          <Link href="/dashboard" className="mr-6 flex items-center space-x-2">
-            <Logo />
-          </Link>
-          <nav className="flex items-center space-x-6 text-sm font-medium">
-            {navItems.map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="transition-colors hover:text-foreground/80 text-foreground/60"
-              >
-                {item.label}
-              </Link>
-            ))}
-          </nav>
-        </div>
-
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <div className="md:hidden">
-            <Link href="/dashboard" className="mr-6 flex items-center space-x-2">
-              <Logo />
-            </Link>
-          </div>
+        <Link href={dashboardPath} className="mr-6 flex items-center space-x-2">
+          <Logo />
+        </Link>
+        <MainNav items={roleNavItems} />
+        <div className="flex flex-1 items-center justify-end space-x-4">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
