@@ -156,7 +156,7 @@ export default function RegisterForm() {
             </Button>
             <CardDescription>
               Already have an account?{" "}
-              <Link href="/" passHref>
+              <Link href="/login" passHref>
                 <Button variant="link" className="p-0 h-auto">Sign in</Button>
               </Link>
             </CardDescription>

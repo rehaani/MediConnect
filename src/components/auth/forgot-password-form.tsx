@@ -55,7 +55,7 @@ export default function ForgotPasswordForm() {
         title: "Password Reset Email Sent",
         description: "If an account exists for this email, you will receive a reset link shortly.",
     })
-    router.push("/");
+    router.push("/login");
   }
 
   const handleVoicePrompt = () => {
@@ -121,7 +121,7 @@ export default function ForgotPasswordForm() {
             </Button>
             <CardDescription>
               Remember your password?{' '}
-              <Link href="/" passHref>
+              <Link href="/login" passHref>
                 <Button variant="link" className="p-0 h-auto">Sign in</Button>
               </Link>
             </CardDescription>
