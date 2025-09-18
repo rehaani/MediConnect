@@ -4,8 +4,9 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useRouter } from "next/navigation";
-import { Mail, Mic, Send } from "lucide-react";
+import { Mail, Mic, Send, Loader2 } from "lucide-react";
 import Link from 'next/link';
+import { useTransition, useState, useRef } from "react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -26,6 +27,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { textToSpeech } from "@/ai/flows/text-to-speech-flow";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -34,6 +37,9 @@ const formSchema = z.object({
 export default function ForgotPasswordForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -53,9 +59,19 @@ export default function ForgotPasswordForm() {
   }
 
   const handleVoicePrompt = () => {
-    toast({
-      title: "Voice Prompts",
-      description: "This feature would use text-to-speech to guide users through the password reset process. For example: 'Please enter the email address you used to sign up.'",
+    setError(null);
+    const text = "Please enter the email address you used to sign up, then press the Send Reset Link button.";
+    startTransition(async () => {
+        try {
+            const response = await textToSpeech(text);
+            if (audioRef.current) {
+                audioRef.current.src = response.media;
+                audioRef.current.play();
+            }
+        } catch (e) {
+            console.error(e);
+            setError("Sorry, we couldn't play the voice assistance at this time. Please try again later.");
+        }
     });
   }
 
@@ -83,10 +99,20 @@ export default function ForgotPasswordForm() {
                 </FormItem>
               )}
             />
-             <Button variant="outline" className="w-full" type="button" onClick={handleVoicePrompt}>
-                <Mic />
+             <Button variant="outline" className="w-full" type="button" onClick={handleVoicePrompt} disabled={isPending}>
+                {isPending ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                    <Mic />
+                )}
                 Use Voice Assistance
             </Button>
+            {error && (
+                <Alert variant="destructive">
+                    <AlertTitle>Error</AlertTitle>
+                    <AlertDescription>{error}</AlertDescription>
+                </Alert>
+            )}
           </CardContent>
           <CardFooter className="flex-col gap-4">
             <Button type="submit" className="w-full">
@@ -102,6 +128,7 @@ export default function ForgotPasswordForm() {
           </CardFooter>
         </form>
       </Form>
+      <audio ref={audioRef} className="hidden" />
     </Card>
   );
 }

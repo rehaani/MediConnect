@@ -3,7 +3,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState, useTransition } from "react";
+import { useState, useTransition, useRef } from "react";
 import { Bot, Loader2, Mic, Send, Siren } from "lucide-react";
 import {
   HealthAssessmentInput,
@@ -41,11 +41,13 @@ const formSchema = z.object({
 
 export default function HealthAssessor() {
   const [isPending, startTransition] = useTransition();
+  const [isVoicePending, startVoiceTransition] = useTransition();
   const [result, setResult] = useState<HealthAssessmentOutput | null>(
     null
   );
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -128,8 +130,8 @@ export default function HealthAssessor() {
                   </FormItem>
                 )}
               />
-              <Button variant="outline" className="w-full" type="button" onClick={handleVoiceInput}>
-                <Mic />
+              <Button variant="outline" className="w-full" type="button" onClick={handleVoiceInput} disabled={isVoicePending}>
+                {isVoicePending ? <Loader2 className="animate-spin" /> : <Mic />}
                 Use Voice Assistance
               </Button>
             </CardContent>
@@ -185,6 +187,7 @@ export default function HealthAssessor() {
             <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
+      <audio ref={audioRef} className="hidden" />
     </div>
   );
 }
