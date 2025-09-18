@@ -35,9 +35,8 @@ export default function WelcomePage() {
           <Image
             src="https://picsum.photos/seed/welcome-hero/1200/800"
             alt="Rural healthcare professional assisting a patient"
-            layout="fill"
-            objectFit="cover"
-            className="absolute z-0"
+            fill
+            className="absolute z-0 object-cover"
             data-ai-hint="rural healthcare"
           />
           <div className="absolute inset-0 bg-black/50 z-10" />
