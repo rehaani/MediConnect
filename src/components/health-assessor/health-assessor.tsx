@@ -52,7 +52,7 @@ export default function HealthAssessor() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      symptoms: "I have a severe headache, a fever of 102°F, and a stiff neck. The headache started this morning and has gotten progressively worse. Bright lights hurt my eyes.",
+      symptoms: "I am experiencing severe, crushing chest pain that is radiating to my left arm. I am also short of breath and feel nauseous.",
     },
   });
 
@@ -65,9 +65,9 @@ export default function HealthAssessor() {
         const input: HealthAssessmentInput = {
             symptoms: values.symptoms,
             userContext: {
-                age: 35,
+                age: 58,
                 gender: "male",
-                medicalHistory: "No chronic illnesses reported. Allergic to penicillin."
+                medicalHistory: "History of high blood pressure."
             }
         };
         const response = await healthAssessment(input);
@@ -149,9 +149,25 @@ export default function HealthAssessor() {
         </Form>
       </Card>
 
-      {result && (
+      {result && result.riskLevel === 'Emergency' && (
+        <Alert variant="destructive">
+          <Siren className="h-4 w-4" />
+          <AlertTitle className="text-xl font-bold">MEDICAL EMERGENCY</AlertTitle>
+          <AlertDescription>
+             <p className="text-base mb-4">{result.recommendation}</p>
+             <div className="space-y-2 text-base">
+                <p><strong className="font-semibold">Assessment:</strong> {result.assessment}</p>
+             </div>
+             <p className="text-xs text-muted-foreground pt-4">
+                Disclaimer: This AI assessment is for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.
+            </p>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {result && result.riskLevel !== 'Emergency' && (
         <Alert variant={getRiskVariant(result.riskLevel)}>
-          {result.riskLevel === 'Emergency' ? <Siren className="h-4 w-4" /> : <Bot className="h-4 w-4" />}
+          <Bot className="h-4 w-4" />
           <AlertTitle className="font-headline">AI Health Assessment</AlertTitle>
           <AlertDescription>
             <p className="font-bold text-lg mb-2">

@@ -23,7 +23,7 @@ export type HealthAssessmentInput = z.infer<typeof HealthAssessmentInputSchema>;
 export const HealthAssessmentOutputSchema = z.object({
   riskLevel: z.enum(['Low', 'Medium', 'High', 'Emergency']).describe('The assessed risk level based on the symptoms.'),
   assessment: z.string().describe('A summary of the AI\'s assessment of the symptoms.'),
-  recommendation: z.string().describe('Recommended next steps for the user.'),
+  recommendation: z.string().describe('Recommended next steps for the user. In case of emergency, this MUST start with "Contact local emergency services immediately."'),
   specialistReferral: z.string().optional().describe('The type of medical specialist recommended for the user, if any.'),
 });
 export type HealthAssessmentOutput = z.infer<typeof HealthAssessmentOutputSchema>;
@@ -56,7 +56,7 @@ Analyze the provided symptoms and user context to determine a risk level, provid
 **Your Task:**
 1.  **Assess Risk:** Classify the risk as 'Low', 'Medium', 'High', or 'Emergency'.
 2.  **Provide Assessment:** Briefly summarize the possible implications of the symptoms. Do not provide a definitive diagnosis.
-3.  **Recommend Next Steps:** Suggest a course of action (e.g., monitor at home, schedule a doctor's appointment, go to an urgent care clinic, or seek immediate emergency help).
+3.  **Recommend Next Steps:** Suggest a course of action (e.g., monitor at home, schedule a doctor's appointment, go to an urgent care clinic, or seek immediate emergency help). If the risk is 'Emergency', the recommendation MUST start with "Contact local emergency services immediately."
 4.  **Suggest Specialist (Optional):** If applicable, suggest a type of specialist to consult (e.g., Cardiologist, Neurologist, etc.).
 `,
 });
