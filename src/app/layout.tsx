@@ -4,6 +4,7 @@ import { Toaster } from '@/components/ui/toaster';
 import Header from '@/components/layout/header';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/layout/theme-provider';
+import { MenuProvider } from '@/context/menu-provider';
 
 export const metadata: Metadata = {
   title: 'MediConnect Auth',
@@ -37,11 +38,13 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="relative flex min-h-screen flex-col">
-            <Header />
-            <main className="flex-1">{children}</main>
-          </div>
-          <Toaster />
+          <MenuProvider>
+            <div className="relative flex min-h-screen flex-col">
+              <Header />
+              <main className="flex-1">{children}</main>
+            </div>
+            <Toaster />
+          </MenuProvider>
         </ThemeProvider>
       </body>
     </html>

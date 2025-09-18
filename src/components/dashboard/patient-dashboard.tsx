@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useRef, useState } from "react";
 import type { User } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Phone, User as UserIcon, MapPin, Loader2, AlertTriangle } from "lucide-react";
 import { Button } from "../ui/button";
+import { MenuContext } from "@/context/menu-provider";
+import { cn } from "@/lib/utils";
 
 // Mock data for emergency contacts
 const emergencyContacts = [
@@ -16,6 +18,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const [locationStatus, setLocationStatus] = useState<"loading" | "success" | "error">("loading");
   const [locationError, setLocationError] = useState<string | null>(null);
+  const { isMobileMenuOpen } = useContext(MenuContext);
 
   useEffect(() => {
     // Dynamically check if window is defined (for SSR)
@@ -76,7 +79,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-        <Card>
+        <Card className="relative">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-headline">
                     <MapPin /> Live Location
@@ -105,6 +108,10 @@ const PatientDashboard = ({ user }: { user: User }) => {
                     </div>
                 )}
             </CardContent>
+             <div className={cn(
+                "absolute inset-0 bg-background/80 transition-opacity duration-300 z-10",
+                isMobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+             )} />
         </Card>
         <Card>
             <CardHeader>

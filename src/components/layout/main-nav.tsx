@@ -3,6 +3,7 @@
 import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { MenuContext } from "@/context/menu-provider"
 
 import { cn } from "@/lib/utils"
 import { Menu } from "lucide-react"
@@ -26,7 +27,7 @@ interface MainNavProps {
 
 export function MainNav({ items, userMenu }: MainNavProps) {
   const pathname = usePathname()
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false)
+  const { isMobileMenuOpen, setIsMobileMenuOpen } = React.useContext(MenuContext);
 
   return (
     <>
