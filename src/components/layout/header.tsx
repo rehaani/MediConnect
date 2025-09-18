@@ -58,16 +58,8 @@ export default async function Header() {
   const roleNavItems = navItems[user.role] || [];
   const dashboardPath = `/${user.role}-dashboard`;
 
-  return (
-    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-16 items-center">
-        <Link href={dashboardPath} className="mr-6 flex items-center space-x-2">
-          <Logo />
-        </Link>
-        <MainNav items={roleNavItems} />
-        <div className="flex flex-1 items-center justify-end space-x-4">
-           <ThemeToggle />
-          <DropdownMenu>
+  const UserMenu = () => (
+     <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
                 variant="ghost"
@@ -112,6 +104,25 @@ export default async function Header() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+  );
+
+  return (
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-16 items-center md:hidden">
+        <div className="flex-1" />
+        <Link href={dashboardPath} className="flex items-center space-x-2">
+          <Logo />
+        </Link>
+        <div className="flex-1" />
+      </div>
+      <div className="container flex h-16 items-center">
+        <Link href={dashboardPath} className="mr-6 hidden items-center space-x-2 md:flex">
+          <Logo />
+        </Link>
+        <MainNav items={roleNavItems} userMenu={<UserMenu />} />
+        <div className="hidden flex-1 items-center justify-end space-x-4 md:flex">
+           <ThemeToggle />
+           <UserMenu />
         </div>
       </div>
     </header>
