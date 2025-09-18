@@ -58,8 +58,12 @@ export default function LoginForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
     // In a real app, you would handle authentication here.
-    // We pass the selected role to the dashboard.
-    router.push(`/dashboard?role=${values.role}`);
+    const rolePaths = {
+      patient: '/patient-dashboard',
+      provider: '/provider-dashboard',
+      admin: '/admin-dashboard',
+    }
+    router.push(rolePaths[values.role]);
   }
 
   function handleBiometricAuth() {
