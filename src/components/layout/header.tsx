@@ -16,6 +16,7 @@ import { getCurrentUser } from '@/lib/auth';
 const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Profile', href: '/profile' },
+  { label: 'Family', href: '/family' },
   { label: 'Emergency Tool', href: '/emergency-routing' },
 ];
 
