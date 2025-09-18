@@ -5,7 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import Link from "next/link";
 
 const patients = [
   { name: 'Ravi Kumar', reason: 'Follow-up', status: 'waiting', type: 'video', time: '10:00 AM', avatar: 'https://picsum.photos/seed/rk/40/40', hint: 'man portrait' },
@@ -73,9 +73,11 @@ const ProviderDashboard = ({ user }: { user: User }) => {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button size="sm">
+                                        <Button size="sm" asChild>
+                                          <Link href="/video-consultation">
                                             {patient.type === 'video' ? <Video className="mr-2"/> : <MessageSquare className="mr-2"/>}
                                             Start Call
+                                          </Link>
                                         </Button>
                                     </TableCell>
                                 </TableRow>
