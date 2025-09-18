@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -21,11 +22,10 @@ interface MainNavProps {
   items: {
     title: string
     href: string
-  }[],
-  userMenu: React.ReactNode;
+  }[]
 }
 
-export function MainNav({ items, userMenu }: MainNavProps) {
+export function MainNav({ items }: MainNavProps) {
   const pathname = usePathname()
   const { isMobileMenuOpen, setIsMobileMenuOpen } = React.useContext(MenuContext);
 
@@ -68,7 +68,6 @@ export function MainNav({ items, userMenu }: MainNavProps) {
             </Link>
             <div className="flex items-center gap-2">
                 <ThemeToggle />
-                {userMenu}
             </div>
           </div>
           <div className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">

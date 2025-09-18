@@ -10,19 +10,20 @@ import { Loader2 } from 'lucide-react';
 export default function DashboardPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const role = searchParams.get('role') as UserRole | null;
-
+  
   useEffect(() => {
+    const role = searchParams.get('role') as UserRole | null;
+
     const rolePaths = {
       patient: '/patient-dashboard',
       provider: '/provider-dashboard',
       admin: '/admin-dashboard',
     };
     
-    const path = role ? rolePaths[role] : '/patient-dashboard'; // Default to patient
+    const path = role && rolePaths[role] ? rolePaths[role] : '/patient-dashboard'; // Default to patient
     router.replace(path);
 
-  }, [role, router]);
+  }, [searchParams, router]);
 
   return (
     <div className="flex h-screen items-center justify-center">

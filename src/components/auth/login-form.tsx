@@ -59,12 +59,7 @@ export default function LoginForm() {
   function onSubmit(values: z.infer<typeof formSchema>) {
     console.log(values);
     // In a real app, you would handle authentication here.
-    const rolePaths = {
-      patient: '/patient-dashboard',
-      provider: '/provider-dashboard',
-      admin: '/admin-dashboard',
-    }
-    router.push(rolePaths[values.role]);
+    router.push(`/dashboard?role=${values.role}`);
   }
 
   async function handleBiometricAuth() {
@@ -76,7 +71,8 @@ export default function LoginForm() {
                 description: "You are now signed in.",
             });
             // Redirect to the appropriate dashboard based on user role after successful sign-in
-            router.push('/provider-dashboard');
+            // For this demo, we assume the biometric user is a provider.
+            router.push('/dashboard?role=provider');
         } else {
              toast({
                 variant: "destructive",
