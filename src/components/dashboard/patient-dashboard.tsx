@@ -79,7 +79,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
 
   return (
     <div className="grid gap-6 md:grid-cols-2">
-        <Card className="relative">
+        <Card className="relative z-0">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-headline">
                     <MapPin /> Live Location
@@ -109,7 +109,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
                 )}
             </CardContent>
              <div className={cn(
-                "absolute inset-0 bg-background/80 transition-opacity duration-300 z-10",
+                "absolute inset-0 bg-background/80 transition-opacity duration-300 z-20",
                 isMobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
              )} />
         </Card>
