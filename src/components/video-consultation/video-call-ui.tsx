@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, ScreenShare, ScreenShareOff } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, ScreenShare } from "lucide-react";
 import { Button } from "../ui/button";
 
 export default function VideoCallUI() {
@@ -96,16 +96,16 @@ export default function VideoCallUI() {
         )}
 
         <div className="flex justify-center gap-4 rounded-lg bg-muted p-2">
-            <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon">
+            <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon" aria-label={isMuted ? "Unmute" : "Mute"}>
                 {isMuted ? <MicOff /> : <Mic />}
             </Button>
-             <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon">
+             <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn off video" : "Turn on video"}>
                 {isVideoEnabled ? <Video /> : <VideoOff />}
             </Button>
-            <Button onClick={() => {toast({title: "Screen Sharing not implemented."})}} variant="secondary" size="icon" disabled>
+            <Button onClick={() => {toast({title: "Screen Sharing not implemented."})}} variant="secondary" size="icon" disabled aria-label="Share screen">
                 <ScreenShare />
             </Button>
-             <Button onClick={() => {toast({title: "Call ended."})}} variant="destructive" size="icon">
+             <Button onClick={() => {toast({title: "Call ended."})}} variant="destructive" size="icon" aria-label="End call">
                 <PhoneOff />
             </Button>
         </div>
