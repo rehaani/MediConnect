@@ -1,3 +1,4 @@
+
 export type UserRole = 'patient' | 'provider' | 'admin';
 
 export type User = {
@@ -21,7 +22,7 @@ export async function getCurrentUser(role?: UserRole): Promise<User> {
     },
     provider: {
       name: 'Dr. Evelyn Reed',
-      email: 'e.reed@medconnect.com',
+      email: 'dr.evelyn.reed@medconnect.com',
       role: 'provider',
       avatar: 'https://picsum.photos/seed/provider/200/200',
     },
