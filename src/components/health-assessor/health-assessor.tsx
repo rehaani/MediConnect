@@ -4,7 +4,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState, useTransition } from "react";
-import { Bot, Loader2, Send, Siren } from "lucide-react";
+import { Bot, Loader2, Mic, Send, Siren } from "lucide-react";
 import {
   HealthAssessmentInput,
   HealthAssessmentOutput,
@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from "@/hooks/use-toast";
 
 const formSchema = z.object({
   symptoms: z
@@ -44,6 +45,7 @@ export default function HealthAssessor() {
     null
   );
   const [error, setError] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -74,6 +76,13 @@ export default function HealthAssessor() {
       }
     });
   }
+
+  const handleVoiceInput = () => {
+    toast({
+        title: "Voice Input",
+        description: "This feature is not yet implemented. It will allow you to describe your symptoms using your voice.",
+    });
+    };
 
   const getRiskVariant = (riskLevel?: HealthAssessmentOutput['riskLevel']) => {
     switch (riskLevel) {
@@ -119,6 +128,10 @@ export default function HealthAssessor() {
                   </FormItem>
                 )}
               />
+              <Button variant="outline" className="w-full" type="button" onClick={handleVoiceInput}>
+                <Mic />
+                Use Voice Assistance
+              </Button>
             </CardContent>
             <CardFooter>
               <Button type="submit" disabled={isPending} className="w-full md:w-auto">
