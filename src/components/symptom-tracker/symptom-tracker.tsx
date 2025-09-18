@@ -23,9 +23,11 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { Save, Paperclip, Loader2, Image as ImageIcon } from "lucide-react";
+import { Save, Paperclip, Loader2, Bot } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import Image from "next/image";
+import { processSymptomImage, ProcessSymptomImageOutput } from "@/ai/flows/process-symptom-image-flow";
+import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
 
 const symptomSchema = z.object({
   date: z.string().min(1, { message: "Date is required." }),
@@ -42,14 +44,16 @@ export default function SymptomTracker() {
   const { toast } = useToast();
   const [isPending, startTransition] = useTransition();
   const [preview, setPreview] = useState<string | null>(null);
+  const [analysisResult, setAnalysisResult] = useState<ProcessSymptomImageOutput | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const form = useForm<z.infer<typeof symptomSchema>>({
     resolver: zodResolver(symptomSchema),
     defaultValues: {
       date: new Date().toISOString().split("T")[0],
-      symptoms: "",
-      painLevel: 5,
-      notes: "",
+      symptoms: "I noticed this strange rash on my arm this morning.",
+      painLevel: 2,
+      notes: "It's a bit itchy.",
     },
   });
 
@@ -59,23 +63,37 @@ export default function SymptomTracker() {
       const reader = new FileReader();
       reader.onloadend = () => {
         setPreview(reader.result as string);
-        form.setValue("photo", file);
+        form.setValue("photo", reader.result as string);
       };
       reader.readAsDataURL(file);
     }
   };
 
   function onSubmit(values: z.infer<typeof symptomSchema>) {
-    startTransition(() => {
+    setAnalysisResult(null);
+    setError(null);
+    startTransition(async () => {
       console.log(values);
-      // Here you would typically save the data to your backend/database
-      // and upload the photo to Firebase Storage.
-      toast({
-        title: "Symptom Logged",
-        description: "Your symptoms for today have been saved.",
-      });
-      form.reset();
-      setPreview(null);
+      if (values.photo) {
+          try {
+              const result = await processSymptomImage({
+                  photoDataUri: values.photo,
+                  description: values.symptoms,
+              });
+              setAnalysisResult(result);
+          } catch(e) {
+              console.error(e);
+              setError("Sorry, the image analysis failed. Please try again later.")
+          }
+      } else {
+        // Here you would typically save the data to your backend/database
+        toast({
+            title: "Symptom Logged",
+            description: "Your symptoms for today have been saved.",
+        });
+      }
+      // form.reset();
+      // setPreview(null);
     });
   }
 
@@ -172,7 +190,7 @@ export default function SymptomTracker() {
                     </div>
                   </FormControl>
                   <FormDescription>
-                    You can attach a photo (e.g., a rash, a swollen joint).
+                    You can attach a photo (e.g., a rash, a swollen joint). The AI can analyze it.
                   </FormDescription>
                   <FormMessage />
                 </FormItem>
@@ -183,7 +201,7 @@ export default function SymptomTracker() {
               <div className="space-y-2">
                 <Label>Photo Preview</Label>
                 <div className="relative w-48 h-48 border rounded-md">
-                   <Image src={preview} alt="Symptom photo preview" layout="fill" objectFit="cover" className="rounded-md" />
+                   <Image src={preview} alt="Symptom photo preview" fill objectFit="cover" className="rounded-md" />
                 </div>
               </div>
             )}
@@ -195,11 +213,44 @@ export default function SymptomTracker() {
                 ) : (
                   <Save className="mr-2 h-4 w-4" />
                 )}
-                Save Log
+                {preview ? 'Analyze and Save' : 'Save Log'}
               </Button>
             </div>
           </form>
         </Form>
+        {isPending && preview && (
+            <div className="flex items-center justify-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <p className="ml-4 text-muted-foreground">AI is analyzing your photo...</p>
+            </div>
+        )}
+        {error && (
+            <Alert variant="destructive" className="mt-6">
+                <AlertTitle>Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        )}
+        {analysisResult && (
+            <Alert className="mt-6">
+                <Bot className="h-4 w-4" />
+                <AlertTitle className="font-headline">AI Image Analysis</AlertTitle>
+                <AlertDescription>
+                    <div className="space-y-3">
+                        <div>
+                            <strong className="font-semibold">Analysis:</strong>
+                            <p>{analysisResult.analysis}</p>
+                        </div>
+                        <div>
+                            <strong className="font-semibold">Recommendation:</strong>
+                            <p>{analysisResult.recommendation}</p>
+                        </div>
+                        <p className="text-xs text-muted-foreground pt-2">
+                            Disclaimer: This AI analysis is for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.
+                        </p>
+                    </div>
+                </AlertDescription>
+            </Alert>
+        )}
       </CardContent>
     </Card>
   );
