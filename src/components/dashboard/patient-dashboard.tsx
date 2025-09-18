@@ -29,6 +29,9 @@ const PatientDashboard = ({ user }: { user: User }) => {
         return;
     }
 
+    // @ts-ignore
+    const L = window.L;
+
     const map = L.map(mapRef.current, {
         scrollWheelZoom: false, // More user-friendly for embedded maps
     });
