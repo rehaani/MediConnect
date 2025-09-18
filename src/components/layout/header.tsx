@@ -13,6 +13,7 @@ import { LifeBuoy, LogOut, Settings, User } from 'lucide-react';
 import Logo from './logo';
 import { getCurrentUser, UserRole } from '@/lib/auth';
 import { MainNav } from './main-nav';
+import { ThemeToggle } from './theme-toggle';
 
 const patientNavItems = [
     { title: 'Dashboard', href: '/patient-dashboard' },
@@ -65,6 +66,7 @@ export default async function Header() {
         </Link>
         <MainNav items={roleNavItems} />
         <div className="flex flex-1 items-center justify-end space-x-4">
+           <ThemeToggle />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button
