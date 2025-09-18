@@ -18,9 +18,9 @@ import { ThemeToggle } from './theme-toggle';
 const patientNavItems = [
     { title: 'Dashboard', href: '/patient-dashboard' },
     { title: 'Appointments', href: '/appointments' },
+    { title: 'AI Symptom Checker', href: '/emergency-routing' },
     { title: 'Symptom Tracker', href: '/symptom-tracker' },
     { title: 'Medications', href: '/medications' },
-    { title: 'Health Assessor', href: '/emergency-routing' },
     { title: 'Profile', href: '/profile' },
     { title: 'Family', href: '/family' },
     { title: 'Video Consultation', href: '/video-consultation'},
