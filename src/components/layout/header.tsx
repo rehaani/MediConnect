@@ -17,6 +17,7 @@ const navItems = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Profile', href: '/profile' },
   { label: 'Family', href: '/family' },
+  { label: 'Symptom Tracker', href: '/symptom-tracker'},
   { label: 'Emergency Tool', href: '/emergency-routing' },
 ];
 
