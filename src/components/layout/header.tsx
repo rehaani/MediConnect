@@ -20,6 +20,7 @@ const navItems = [
   { label: 'Symptom Tracker', href: '/symptom-tracker'},
   { label: 'Health Assessor', href: '/emergency-routing' },
   { label: 'Appointments', href: '/appointments' },
+  { label: 'Video Consultation', href: '/video-consultation'}
 ];
 
 export default async function Header() {
