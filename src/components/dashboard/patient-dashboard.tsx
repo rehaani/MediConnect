@@ -8,6 +8,7 @@ import { Phone, User as UserIcon, MapPin, Loader2, AlertTriangle, Globe } from "
 import { Button } from "../ui/button";
 import { MenuContext } from "@/context/menu-provider";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
 // Mock data for emergency contacts
 const emergencyContacts = [
@@ -22,6 +23,19 @@ const PatientDashboard = ({ user }: { user: User }) => {
   const { isMobileMenuOpen } = useContext(MenuContext);
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const { toast } = useToast();
+
+  const mapCountryToLanguage = (code: string | null): {lang: string, langName: string} => {
+    const map: Record<string, {lang: string, langName: string}> = {
+        'IN': { lang: 'hi', langName: 'Hindi' },
+        'US': { lang: 'en', langName: 'English' },
+        'DE': { lang: 'de', langName: 'German' },
+    };
+    if (code && map[code]) {
+      return map[code];
+    }
+    return { lang: 'en', langName: 'English' }; // Default to English
+  };
 
   useEffect(() => {
     // Dynamically check if window is defined (for SSR)
@@ -77,6 +91,21 @@ const PatientDashboard = ({ user }: { user: User }) => {
                     const code = data.address.country_code.toUpperCase();
                     setCountryCode(code);
                     localStorage.setItem('countryCode', code);
+
+                    // Language Suggestion Logic
+                    const currentLang = 'en'; // Assuming current app language is English
+                    const { lang, langName } = mapCountryToLanguage(code);
+                    const suggestionShown = sessionStorage.getItem('langSuggestionShown');
+
+                    if (lang !== currentLang && !suggestionShown) {
+                        toast({
+                            title: "Language Suggestion",
+                            description: `It looks like you're in a region where ${langName} is spoken. Would you like to switch?`,
+                            duration: 10000,
+                            // action: <ToastAction altText="Switch" onClick={() => console.log(`Switching to ${lang}`)}>Switch</ToastAction>,
+                        });
+                        sessionStorage.setItem('langSuggestionShown', 'true');
+                    }
                 }
             } catch (error) {
                 console.error("Reverse geocoding failed:", error);
@@ -107,7 +136,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
         map.remove();
     };
 
-  }, []);
+  }, [toast]);
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
@@ -186,7 +215,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
                             <span>Determining country...</span>
                         </div>
                     ) : countryCode ? (
-                         <p className="text-lg font-bold">{countryCode}</p>
+                         <p className="text-lg font-bold">{countryCode} ({mapCountryToLanguage(countryCode).langName})</p>
                     ) : (
                         <p className="text-sm text-muted-foreground">Country not detected. Please enable location access.</p>
                     )}
@@ -198,4 +227,5 @@ const PatientDashboard = ({ user }: { user: User }) => {
 };
 
 export default PatientDashboard;
+
 
