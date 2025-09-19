@@ -44,27 +44,36 @@ export default function WebRTCVideoCall() {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const hangUp = useCallback(async () => {
-    if (!pc && !localStream) return; // Prevent multiple hang-up calls
+    if (!pc && !localStream) return;
 
     pc?.close();
-    localStream?.getTracks().forEach(track => track.stop());
-    remoteStream?.getTracks().forEach(track => track.stop());
-    
-    if (currentRoomId) {
-      const roomRef = ref(db, `calls/${currentRoomId}`);
-      await remove(roomRef);
+
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+    if (remoteStream) {
+        remoteStream.getTracks().forEach(track => track.stop());
     }
 
+    if (currentRoomId) {
+        const roomRef = ref(db, `calls/${currentRoomId}`);
+        await remove(roomRef);
+    }
+    
     setCallState("ended");
     setLocalStream(null);
     setRemoteStream(null);
     setPc(null);
-    setCurrentRoomId(prev => {
-        if(prev) toast({ title: "Call ended." });
-        return "";
-    });
+    
+    const previousRoomId = currentRoomId;
+    setCurrentRoomId("");
     setRoomId("");
-  }, [pc, localStream, remoteStream, currentRoomId, toast]);
+
+    if (previousRoomId) {
+        toast({ title: "Call ended." });
+    }
+
+}, [pc, localStream, remoteStream, currentRoomId, toast]);
 
   const setupStreams = useCallback(async () => {
     try {
@@ -73,6 +82,8 @@ export default function WebRTCVideoCall() {
         localVideoRef.current.srcObject = stream;
       }
       setLocalStream(stream);
+      setIsVideoEnabled(true);
+      setIsMuted(false);
       return stream;
     } catch (error) {
       console.error("Error accessing media devices.", error);
@@ -98,7 +109,6 @@ export default function WebRTCVideoCall() {
         }
     };
 
-    // Listen for connection state changes
     newPc.oniceconnectionstatechange = () => {
         if (newPc.iceConnectionState === 'disconnected' || newPc.iceConnectionState === 'failed') {
             console.log('Peer disconnected.');
@@ -117,14 +127,12 @@ export default function WebRTCVideoCall() {
 
     const newPc = initializePeerConnection(stream);
     
-    // Using a simpler random string for the room ID
     const newRoomId = Math.random().toString(36).substring(2, 9);
     const roomRef = ref(db, `calls/${newRoomId}`);
-    onDisconnect(roomRef).remove(); // Ensure cleanup on tab close
+    onDisconnect(roomRef).remove(); 
 
     setCurrentRoomId(newRoomId);
     
-    const offerCandidatesRef = ref(db, `calls/${newRoomId}/offerCandidates`);
     newPc.onicecandidate = event => {
         if (event.candidate) {
             const candidateRef = ref(db, `calls/${newRoomId}/offerCandidates/${Math.random().toString(36).substring(2)}`);
@@ -140,7 +148,9 @@ export default function WebRTCVideoCall() {
     setCallState("active");
 
     onValue(ref(db, `calls/${newRoomId}/answer`), async (snapshot) => {
-      if (snapshot.exists() && !newPc.currentRemoteDescription) {
+      if (snapshot.exists() && newPc.currentRemoteDescription) {
+         // ignore stale answers
+      } else if(snapshot.exists()) {
         const answerDescription = new RTCSessionDescription(snapshot.val());
         await newPc.setRemoteDescription(answerDescription);
       }
@@ -178,7 +188,6 @@ export default function WebRTCVideoCall() {
     const newPc = initializePeerConnection(stream);
     setCurrentRoomId(roomId);
     
-    const answerCandidatesRef = ref(db, `calls/${roomId}/answerCandidates`);
     newPc.onicecandidate = event => {
         if (event.candidate) {
             const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${Math.random().toString(36).substring(2)}`);
@@ -340,3 +349,5 @@ export default function WebRTCVideoCall() {
     
 
   
+
+    
