@@ -47,6 +47,7 @@ const navItems: Record<UserRole, { title: string; href: string }[]> = {
 export default function Header({ user }: { user: User }) {
   const roleNavItems = navItems[user.role] || [];
   const dashboardPath = `/dashboard?role=${user.role}`;
+  const showLanguageToggle = user.role !== 'admin';
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -66,12 +67,12 @@ export default function Header({ user }: { user: User }) {
             </div>
             <nav className="hidden md:flex gap-4 items-center">
                 <MainNav items={roleNavItems} />
-                <LanguageToggle />
+                {showLanguageToggle && <LanguageToggle />}
                 <ThemeToggle />
                 <UserMenu user={user} />
             </nav>
             <div className="flex items-center gap-2 md:hidden">
-                <LanguageToggle />
+                {showLanguageToggle && <LanguageToggle />}
                 <ThemeToggle />
                 <UserMenu user={user} />
             </div>
