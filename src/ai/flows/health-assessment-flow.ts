@@ -3,30 +3,16 @@
  * @fileOverview An AI agent that performs a health assessment based on user-provided symptoms.
  *
  * - healthAssessment - A function that handles the health assessment process.
- * - HealthAssessmentInput - The input type for the healthAssessment function.
- * - HealthAssessmentOutput - The return type for the healthAssessment function.
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {
+    HealthAssessmentInput,
+    HealthAssessmentInputSchema,
+    HealthAssessmentOutput,
+    HealthAssessmentOutputSchema,
+} from '@/ai/schemas/health-assessment';
 
-export const HealthAssessmentInputSchema = z.object({
-  symptoms: z.string().describe('A detailed description of the user\'s symptoms.'),
-  userContext: z.object({
-      age: z.number().optional().describe('The user\'s age.'),
-      gender: z.enum(['male', 'female', 'other']).optional().describe('The user\'s gender.'),
-      medicalHistory: z.string().optional().describe('The user\'s relevant medical history, including chronic conditions, allergies, and current medications.'),
-    }).optional(),
-});
-export type HealthAssessmentInput = z.infer<typeof HealthAssessmentInputSchema>;
-
-export const HealthAssessmentOutputSchema = z.object({
-  riskLevel: z.enum(['Low', 'Medium', 'High', 'Emergency']).describe('The assessed risk level based on the symptoms.'),
-  assessment: z.string().describe('A summary of the AI\'s assessment of the symptoms.'),
-  recommendation: z.string().describe('Recommended next steps for the user. In case of emergency, this MUST start with "Contact local emergency services immediately."'),
-  specialistReferral: z.string().optional().describe('The type of medical specialist recommended for the user, if any.'),
-});
-export type HealthAssessmentOutput = z.infer<typeof HealthAssessmentOutputSchema>;
 
 export async function healthAssessment(input: HealthAssessmentInput): Promise<HealthAssessmentOutput> {
   return healthAssessmentFlow(input);
