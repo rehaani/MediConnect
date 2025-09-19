@@ -10,3 +10,4 @@ import '@/ai/flows/verify-registration-flow';
 import '@/ai/flows/generate-authentication-options-flow';
 import '@/ai/flows/verify-authentication-flow';
 import '@/ai/flows/analyze-documents-flow';
+import '@/ai/schemas/document-analyzer-schema';
