@@ -1,12 +1,11 @@
 
 "use client";
-import { Bot, Calendar, FileText, HeartPulse, Pill, User as UserIcon, Shield, Users, MonitorPlay, UserCog, BarChart, Wrench, FlaskConical } from "lucide-react";
 import type { UserRole } from "./auth";
 
 export type Feature = {
   name: string;
   path: string;
-  icon: React.ReactNode;
+  icon: string;
   bgColor: string;
   description: string;
   roles: UserRole[];
@@ -17,7 +16,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'AI Health Assessor',
       path: '/ai-health-assessor',
-      icon: <Bot />,
+      icon: 'Bot',
       bgColor: '#3b82f6',
       description: 'Get a preliminary health check.',
       roles: ['patient'],
@@ -25,7 +24,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Appointments',
       path: '/appointments',
-      icon: <Calendar />,
+      icon: 'Calendar',
       bgColor: '#10b981',
       description: 'Schedule new appointments.',
       roles: ['patient', 'provider'],
@@ -33,7 +32,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Symptom Tracker',
       path: '/symptom-tracker',
-      icon: <HeartPulse />,
+      icon: 'HeartPulse',
       bgColor: '#f97316',
       description: 'Log your daily symptoms.',
       roles: ['patient'],
@@ -41,7 +40,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Document Analyzer',
       path: '/document-analyzer',
-      icon: <FileText />,
+      icon: 'FileText',
       bgColor: '#8b5cf6',
       description: 'Analyze medical documents.',
       roles: ['patient', 'provider'],
@@ -49,7 +48,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Medications',
       path: '/medications',
-      icon: <Pill />,
+      icon: 'Pill',
       bgColor: '#ec4899',
       description: 'Manage your medications.',
       roles: ['patient'],
@@ -57,7 +56,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Profile',
       path: '/profile',
-      icon: <UserIcon />,
+      icon: 'UserIcon',
       bgColor: '#6366f1',
       description: 'Update your user profile.',
       roles: ['patient'],
@@ -65,7 +64,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Family',
       path: '/family',
-      icon: <Users />,
+      icon: 'Users',
       bgColor: '#14b8a6',
       description: 'Manage family members.',
       roles: ['patient'],
@@ -73,7 +72,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Video Consultation',
       path: '/video-consultation',
-      icon: <Shield />,
+      icon: 'Shield',
       bgColor: '#d946ef',
       description: 'Start a video call.',
       roles: ['patient', 'provider'],
@@ -82,7 +81,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Patient Queue',
       path: '/provider-dashboard',
-      icon: <Users />,
+      icon: 'Users',
       bgColor: '#3b82f6',
       description: "View today's patient list.",
       roles: ['provider'],
@@ -90,7 +89,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Start Consultation',
       path: '/video-consultation',
-      icon: <MonitorPlay />,
+      icon: 'MonitorPlay',
       bgColor: '#f97316',
       description: 'Launch a video call room.',
       roles: ['provider'],
@@ -99,7 +98,7 @@ export const FEATURES: Feature[] = [
      {
       name: 'User Management',
       path: '/admin-dashboard/users',
-      icon: <UserCog />,
+      icon: 'UserCog',
       bgColor: 'bg-blue-500',
       description: 'Manage user roles and permissions.',
       roles: ['admin'],
@@ -107,7 +106,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Platform Analytics',
       path: '/admin-dashboard/analytics',
-      icon: <BarChart />,
+      icon: 'BarChart',
       bgColor: 'bg-green-500',
       description: 'View usage statistics and metrics.',
       roles: ['admin'],
@@ -115,7 +114,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Content Moderation',
       path: '/admin-dashboard/moderation',
-      icon: <FileText />,
+      icon: 'FileText',
       bgColor: 'bg-yellow-500',
       description: 'Review and moderate user content.',
       roles: ['admin'],
@@ -123,7 +122,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Platform Settings',
       path: '/admin-dashboard/settings',
-      icon: <Wrench />,
+      icon: 'Wrench',
       bgColor: 'bg-purple-500',
       description: 'Configure global app settings.',
       roles: ['admin'],
@@ -131,7 +130,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Test Suite',
       path: '/admin-dashboard/test-suite',
-      icon: <FlaskConical />,
+      icon: 'FlaskConical',
       bgColor: 'bg-red-500',
       description: 'Run automated system checks.',
       roles: ['admin'],

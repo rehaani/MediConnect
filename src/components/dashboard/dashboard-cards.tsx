@@ -7,11 +7,29 @@ import { Card } from '@/components/ui/card';
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useRouter } from 'next/navigation';
+import { Bot, Calendar, FileText, HeartPulse, Pill, User as UserIcon, Shield, Users, MonitorPlay, UserCog, BarChart, Wrench, FlaskConical } from "lucide-react";
+
+const icons: { [key: string]: React.ReactNode } = {
+  Bot: <Bot />,
+  Calendar: <Calendar />,
+  FileText: <FileText />,
+  HeartPulse: <HeartPulse />,
+  Pill: <Pill />,
+  UserIcon: <UserIcon />,
+  Shield: <Shield />,
+  Users: <Users />,
+  MonitorPlay: <MonitorPlay />,
+  UserCog: <UserCog />,
+  BarChart: <BarChart />,
+  Wrench: <Wrench />,
+  FlaskConical: <FlaskConical />,
+};
+
 
 type Feature = {
   name: string;
   path: string;
-  icon: React.ReactNode;
+  icon: string;
   bgColor: string;
   description: string;
 };
@@ -52,7 +70,7 @@ export default function DashboardCards({ features }: DashboardCardsProps) {
               {...(feature.bgColor.startsWith('bg-') && { className: `p-4 h-[140px] md:h-[180px] flex flex-col justify-center items-center text-center transition-shadow duration-300 ease-in-out hover:shadow-lg text-white ${feature.bgColor}` })}
             >
               <div className="mb-2">
-                {React.cloneElement(feature.icon as React.ReactElement, { className: "h-8 w-8 md:h-10 md:w-10" })}
+                {React.cloneElement(icons[feature.icon] as React.ReactElement, { className: "h-8 w-8 md:h-10 md:w-10" })}
               </div>
               <h3 className="font-headline text-base md:text-lg font-semibold">{feature.name}</h3>
               <p className="text-xs text-white/80 transition-opacity duration-300 opacity-0 group-hover:opacity-100 h-0 group-hover:h-auto">
