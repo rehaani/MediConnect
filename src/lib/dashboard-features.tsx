@@ -72,7 +72,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Video Consultation',
       path: '/video-consultation',
-      icon: 'Shield',
+      icon: 'MonitorPlay',
       bgColor: '#d946ef',
       description: 'Start a video call.',
       roles: ['patient', 'provider'],
@@ -84,14 +84,6 @@ export const FEATURES: Feature[] = [
       icon: 'Users',
       bgColor: '#3b82f6',
       description: "View today's patient list.",
-      roles: ['provider'],
-    },
-    {
-      name: 'Start Consultation',
-      path: '/video-consultation',
-      icon: 'MonitorPlay',
-      bgColor: '#f97316',
-      description: 'Launch a video call room.',
       roles: ['provider'],
     },
     // Admin Features
@@ -114,7 +106,7 @@ export const FEATURES: Feature[] = [
     {
       name: 'Content Moderation',
       path: '/admin-dashboard/moderation',
-      icon: 'FileText',
+      icon: 'Shield',
       bgColor: 'bg-yellow-500',
       description: 'Review and moderate user content.',
       roles: ['admin'],

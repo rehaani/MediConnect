@@ -70,7 +70,5 @@ const AdminDashboard = ({ user }: { user: User }) => {
 
 // Re-add Card components to be used within the dashboard
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
-import Link from "next/link";
 
 export default AdminDashboard;
