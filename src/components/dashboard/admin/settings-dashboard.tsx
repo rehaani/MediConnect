@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { PlusCircle, Trash2 } from "lucide-react";
+import { PlusCircle, Trash2, DatabaseBackup, Trash, Power } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
@@ -19,6 +19,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const initialSymptomsLibrary = [
   {
@@ -43,6 +45,7 @@ export default function SettingsDashboard() {
     const { toast } = useToast();
     const [symptomLibrary, setSymptomLibrary] = useState(initialSymptomsLibrary);
     const [newSymptom, setNewSymptom] = useState("");
+    const [isMaintenanceMode, setIsMaintenanceMode] = useState(false);
 
     const handleAddSymptom = (category: string) => {
         if (!newSymptom) return;
@@ -73,8 +76,61 @@ export default function SettingsDashboard() {
         toast({ title: "Symptom Removed", description: `Removed "${symptom}" from ${category}.`});
     }
 
+    const handleMaintenanceAction = (action: string) => {
+        toast({
+            title: "Maintenance Action",
+            description: `Successfully triggered: ${action}.`
+        });
+        // In a real app, this would trigger a Cloud Function
+    }
+
     return (
         <div className="space-y-6">
+            <Card>
+                <CardHeader>
+                    <CardTitle className="font-headline">Maintenance Tools</CardTitle>
+                    <CardDescription>Perform system-wide administrative actions.</CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                            <h4 className="font-semibold">Trigger Data Backup</h4>
+                            <p className="text-sm text-muted-foreground">Creates a secure backup of the Firestore database.</p>
+                        </div>
+                        <Button onClick={() => handleMaintenanceAction("Data Backup")}>
+                            <DatabaseBackup className="mr-2"/>
+                            Backup Now
+                        </Button>
+                    </div>
+                     <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                            <h4 className="font-semibold">Clear System Cache</h4>
+                            <p className="text-sm text-muted-foreground">Purges temporary data to improve performance.</p>
+                        </div>
+                         <Button variant="destructive" onClick={() => handleMaintenanceAction("Clear Cache")}>
+                            <Trash className="mr-2"/>
+                            Clear Cache
+                        </Button>
+                    </div>
+                     <div className="flex items-center justify-between p-4 border rounded-lg">
+                        <div>
+                            <h4 className="font-semibold">Maintenance Mode</h4>
+                            <p className="text-sm text-muted-foreground">Temporarily restrict non-admin access to the site.</p>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                            <Switch
+                                id="maintenance-mode"
+                                checked={isMaintenanceMode}
+                                onCheckedChange={setIsMaintenanceMode}
+                            />
+                            <Label htmlFor="maintenance-mode">
+                                {isMaintenanceMode ? "Enabled" : "Disabled"}
+                            </Label>
+                        </div>
+                    </div>
+                </CardContent>
+            </Card>
+
             <Card>
                 <CardHeader>
                     <CardTitle className="font-headline">Symptom Library Management</CardTitle>

@@ -31,7 +31,7 @@ const AdminDashboard = ({ user }: { user: User }) => {
       {/* System Health & User Management */}
       <Card className="lg:col-span-1">
         <CardHeader>
-          <CardTitle className="font-headline">System Health</CardTitle>
+          <CardTitle className="font-headline">System Monitoring</CardTitle>
           <CardDescription>Real-time monitoring of platform services.</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -41,7 +41,7 @@ const AdminDashboard = ({ user }: { user: User }) => {
                 <span className="text-sm">API Services</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-primary">99.9% Up</span>
+                <span className="text-sm text-primary">99.9% Uptime</span>
                 <div className="h-2 w-2 rounded-full bg-primary animate-pulse"></div>
               </div>
             </div>
@@ -58,11 +58,11 @@ const AdminDashboard = ({ user }: { user: User }) => {
              <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <ShieldCheck className="h-5 w-5 text-muted-foreground" />
-                <span className="text-sm">Security Services</span>
+                <span className="text-sm">Security Alerts</span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-sm text-primary">Monitored</span>
-                <div className="h-2 w-2 rounded-full bg-primary"></div>
+                <span className="text-sm text-muted-foreground">None</span>
+                <div className="h-2 w-2 rounded-full bg-gray-400"></div>
               </div>
             </div>
         </CardContent>
