@@ -3,7 +3,7 @@
 
 import * as React from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { MenuContext } from "@/context/menu-provider"
 import { useTranslation } from "react-i18next";
 
@@ -17,6 +17,8 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import Logo from "./logo"
+import { getCurrentUser, UserRole } from "@/lib/auth"
+import { Skeleton } from "../ui/skeleton"
 
 interface MainNavProps {
   items: {
@@ -27,8 +29,39 @@ interface MainNavProps {
 
 export function MainNav({ items }: MainNavProps) {
   const pathname = usePathname()
+  const router = useRouter();
   const { isMobileMenuOpen, setIsMobileMenuOpen } = React.useContext(MenuContext);
   const { t } = useTranslation();
+  const [dashboardUrl, setDashboardUrl] = React.useState<string>("/");
+  const [loading, setLoading] = React.useState(true);
+
+  React.useEffect(() => {
+    async function determineDashboardUrl() {
+        try {
+            // In a real app, you might already have user context. Here we fetch it.
+            const user = await getCurrentUser();
+            const rolePaths: Record<UserRole, string> = {
+                patient: '/patient-dashboard',
+                provider: '/provider-dashboard',
+                admin: '/admin-dashboard',
+            };
+            setDashboardUrl(rolePaths[user.role] || '/');
+        } catch(e) {
+            // Not logged in, default to home
+            setDashboardUrl('/');
+        } finally {
+            setLoading(false);
+        }
+    }
+    determineDashboardUrl();
+  }, []);
+
+
+  const handleLogoClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
+    e.preventDefault();
+    setIsMobileMenuOpen(false);
+    router.push(dashboardUrl);
+  };
 
   return (
     <>
@@ -63,9 +96,11 @@ export function MainNav({ items }: MainNavProps) {
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="pr-0 pt-10">
-             <Link href="/" className="flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
-                <Logo />
-            </Link>
+             {loading ? <Skeleton className="h-7 w-36" /> : (
+                <Link href={dashboardUrl} className="flex items-center" onClick={handleLogoClick}>
+                    <Logo />
+                </Link>
+             )}
             <div className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
               <div className="flex flex-col space-y-4">
                 {items?.map(
