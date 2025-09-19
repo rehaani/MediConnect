@@ -26,6 +26,7 @@ import {
 } from "@/components/ui/card";
 import {
   Form,
+  FormMessage,
 } from "@/components/ui/form";
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -59,16 +60,24 @@ const symptomsLibrary = [
 ];
 
 const formSchema = z.object({
-  age: z.coerce.number().min(0).max(120),
-  gender: z.enum(['male', 'female', 'other', 'prefer-not-to-say']),
-  medicalHistory: z.string().optional(),
-  symptoms: z.string().min(10, { message: "Please describe your symptoms in more detail." }),
+  age: z.coerce.number().min(1, { message: "Age is required." }).max(120),
+  gender: z.enum(['male', 'female', 'other', 'prefer-not-to-say'], { required_error: "Please select a gender."}),
+  medicalHistory: z.string().max(500, { message: "History must be 500 characters or less."}).optional(),
+  symptoms: z.string().min(10, { message: "Please describe your symptoms in at least 10 characters." }),
   photo: z.any().optional(),
   checkedSymptoms: z.array(z.string()).optional(),
   painLevel: z.number().min(0).max(10),
 });
 
 type FormData = z.infer<typeof formSchema>;
+
+const stepFields: (keyof FormData)[][] = [
+    ['age', 'gender', 'medicalHistory'], // Step 1
+    ['symptoms', 'photo'], // Step 2
+    ['checkedSymptoms'], // Step 3
+    ['painLevel'], // Step 4
+    [], // Step 5 (Review)
+];
 
 export default function HealthAssessor() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -164,7 +173,13 @@ export default function HealthAssessor() {
     });
   };
 
-  const nextStep = () => setCurrentStep(prev => Math.min(prev + 1, 6));
+  const nextStep = async () => {
+    const fieldsToValidate = stepFields[currentStep - 1];
+    const isValid = await form.trigger(fieldsToValidate);
+    if (isValid) {
+      setCurrentStep(prev => Math.min(prev + 1, 6));
+    }
+  };
   const prevStep = () => setCurrentStep(prev => Math.max(prev - 1, 1));
 
   const getRiskVariant = (riskLevel?: HealthAssessmentOutput['riskLevel']) => {
@@ -207,83 +222,63 @@ export default function HealthAssessor() {
             {currentStep === 1 && (
               <div className="space-y-6">
                 <div className="grid md:grid-cols-2 gap-6">
-                  <Controller
-                    control={form.control}
-                    name="age"
-                    render={({ field }) => (
-                      <div>
-                        <Label htmlFor="age">Age</Label>
-                        <Input id="age" type="number" {...field} />
-                      </div>
-                    )}
-                  />
-                  <Controller
-                    control={form.control}
-                    name="gender"
-                    render={({ field }) => (
-                      <div>
-                        <Label>Gender</Label>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select gender" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="male">Male</SelectItem>
-                            <SelectItem value="female">Female</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                            <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    )}
-                  />
+                   <div className="space-y-2">
+                    <Label htmlFor="age">Age</Label>
+                    <Input id="age" type="number" {...form.register('age')} />
+                    <FormMessage>{form.formState.errors.age?.message}</FormMessage>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Gender</Label>
+                    <Controller
+                        control={form.control}
+                        name="gender"
+                        render={({ field }) => (
+                            <Select onValueChange={field.onChange} defaultValue={field.value}>
+                            <SelectTrigger>
+                                <SelectValue placeholder="Select gender" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="male">Male</SelectItem>
+                                <SelectItem value="female">Female</SelectItem>
+                                <SelectItem value="other">Other</SelectItem>
+                                <SelectItem value="prefer-not-to-say">Prefer not to say</SelectItem>
+                            </SelectContent>
+                            </Select>
+                        )}
+                    />
+                     <FormMessage>{form.formState.errors.gender?.message}</FormMessage>
+                  </div>
                 </div>
-                <Controller
-                  control={form.control}
-                  name="medicalHistory"
-                  render={({ field }) => (
-                    <div>
-                      <Label htmlFor="medicalHistory">Relevant Medical History</Label>
-                      <Textarea id="medicalHistory" placeholder="e.g., Asthma, high blood pressure, penicillin allergy..." {...field} rows={4} />
-                    </div>
-                  )}
-                />
+                 <div className="space-y-2">
+                  <Label htmlFor="medicalHistory">Relevant Medical History (Optional)</Label>
+                  <Textarea id="medicalHistory" placeholder="e.g., Asthma, high blood pressure, penicillin allergy..." {...form.register('medicalHistory')} rows={4} />
+                   <FormMessage>{form.formState.errors.medicalHistory?.message}</FormMessage>
+                </div>
               </div>
             )}
             {currentStep === 2 && (
               <div className="space-y-6">
-                 <Controller
-                  control={form.control}
-                  name="symptoms"
-                  render={({ field }) => (
-                    <div>
-                        <Label>Describe your main symptoms</Label>
-                        <Textarea
-                            placeholder="e.g., I have a high fever, a persistent cough, and I'm feeling very tired."
-                            {...field}
-                            rows={6}
-                        />
-                    </div>
-                  )}
-                />
+                 <div className="space-y-2">
+                    <Label>Describe your main symptoms</Label>
+                    <Textarea
+                        placeholder="e.g., I have a high fever, a persistent cough, and I'm feeling very tired."
+                        {...form.register('symptoms')}
+                        rows={6}
+                    />
+                    <FormMessage>{form.formState.errors.symptoms?.message}</FormMessage>
+                </div>
                 <Button variant="outline" className="w-full" type="button" onClick={handleVoiceInput}>
                   <Mic className="mr-2" /> Use Voice Assistance
                 </Button>
-                <Controller
-                    control={form.control}
-                    name="photo"
-                    render={({ field }) => (
-                        <div>
-                            <Label>(Optional) Upload a Photo</Label>
-                            <Input 
-                                type="file" 
-                                accept="image/*" 
-                                onChange={handlePhotoChange} 
-                            />
-                            <p className="text-sm text-muted-foreground mt-1">A photo of a visible symptom (e.g., rash) can help the analysis.</p>
-                        </div>
-                    )}
-                />
+                 <div>
+                    <Label>(Optional) Upload a Photo</Label>
+                    <Input 
+                        type="file" 
+                        accept="image/*" 
+                        onChange={handlePhotoChange} 
+                    />
+                    <p className="text-sm text-muted-foreground mt-1">A photo of a visible symptom (e.g., rash) can help the analysis.</p>
+                </div>
                  {preview && (
                     <div className="space-y-2">
                         <Label>Photo Preview</Label>
@@ -363,14 +358,19 @@ export default function HealthAssessor() {
              {currentStep === 5 && (
                 <div className="space-y-4">
                     <h3 className="font-bold">Please review your information before submitting.</h3>
-                    <div className="p-4 border rounded-lg space-y-3 bg-muted/50">
+                    <div className="p-4 border rounded-lg space-y-3 bg-muted/50 text-sm">
                         <p><strong>Age:</strong> {form.getValues('age')}</p>
-                        <p><strong>Gender:</strong> {form.getValues('gender')}</p>
+                        <p><strong>Gender:</strong> <span className="capitalize">{form.getValues('gender')}</span></p>
                         <p><strong>Medical History:</strong> {form.getValues('medicalHistory') || 'N/A'}</p>
                         <p><strong>Main Symptoms:</strong> {form.getValues('symptoms')}</p>
                         <p><strong>Additional Symptoms:</strong> {form.getValues('checkedSymptoms')?.join(', ') || 'None'}</p>
                         <p><strong>Pain Level:</strong> {form.getValues('painLevel')}/10</p>
-                        {preview && <p><strong>Photo Attached:</strong> Yes</p>}
+                        {preview && (
+                            <div className="flex items-start gap-2">
+                                <strong>Photo Attached:</strong>
+                                <Image src={preview} alt="Symptom photo" width={80} height={80} className="rounded-md border" />
+                            </div>
+                        )}
                     </div>
                 </div>
              )}
@@ -438,19 +438,19 @@ export default function HealthAssessor() {
                 <ChevronLeft /> Back
               </Button>
             )}
-            {currentStep < 5 && (
-              <Button type="button" onClick={nextStep}>
+             {currentStep < 5 && (
+              <Button type="button" onClick={nextStep} className="ml-auto">
                 Next <ChevronRight />
               </Button>
             )}
             {currentStep === 5 && (
-                <Button type="submit" disabled={isPending}>
+                <Button type="submit" disabled={isPending} className="ml-auto">
                     {isPending ? <Loader2 className="mr-2 animate-spin" /> : <Send className="mr-2" />}
                     Analyze Symptoms
                 </Button>
             )}
             {currentStep === 6 && (
-                 <Button type="button" onClick={() => setCurrentStep(1)}>
+                 <Button type="button" onClick={() => { form.reset(); setCurrentStep(1); setPreview(null); setTextResult(null); setImageResult(null); }} className="ml-auto">
                     Start Over
                 </Button>
             )}
@@ -461,25 +461,4 @@ export default function HealthAssessor() {
   );
 }
 
-// Extend Slider to accept trackClassName
-const OriginalSlider = Slider;
-type ExtendedSliderProps = React.ComponentProps<typeof OriginalSlider> & { trackClassName?: string };
-
-const CustomSlider = React.forwardRef<React.ElementRef<typeof OriginalSlider>, ExtendedSliderProps>(
-  ({ trackClassName, ...props }, ref) => {
-    // A bit of a hack to get the class name to the track
-    // In a real scenario, you might fork the component
-    const children = React.Children.map(props.children, child => {
-        if (React.isValidElement(child) && child.type === 'span' && trackClassName) {
-            return React.cloneElement(child, { className: `${(child.props as any).className} ${trackClassName}` });
-        }
-        return child;
-    });
-
-    if (trackClassName) {
-        return <OriginalSlider {...props} ref={ref} children={undefined} trackClassName={trackClassName} />;
-    }
-    return <OriginalSlider {...props} ref={ref} />;
-});
-CustomSlider.displayName = "CustomSlider";
-
+    
