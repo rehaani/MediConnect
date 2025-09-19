@@ -113,28 +113,30 @@ export default async function Header() {
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 items-center">
-        <div className="mr-4 hidden items-center md:flex">
+        <div className="mr-4 hidden md:flex">
           <Link href={dashboardPath} className="flex items-center space-x-2">
             <Logo />
           </Link>
         </div>
-        <div className="flex flex-1 items-center justify-between md:hidden">
-            <Link href={dashboardPath} className="flex items-center space-x-2">
-                <Logo />
-            </Link>
-            <div className="flex items-center space-x-2">
+        
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+            <div className="md:hidden">
+                <MainNav items={roleNavItems} />
+            </div>
+            <div className="w-full flex-1 md:w-auto md:flex-none">
+                 {/* This could be a search bar in the future */}
+            </div>
+            <nav className="hidden md:flex gap-4 items-center">
+                <MainNav items={roleNavItems} />
+                <LanguageToggle />
+                <ThemeToggle />
+                <UserMenu />
+            </nav>
+            <div className="flex items-center gap-2 md:hidden">
                 <LanguageToggle />
                 <ThemeToggle />
                 <UserMenu />
             </div>
-        </div>
-        <div className="hidden md:flex flex-1 items-center justify-end space-x-2">
-          <MainNav items={roleNavItems} />
-          <div className="flex items-center space-x-4">
-            <LanguageToggle />
-            <ThemeToggle />
-            <UserMenu />
-          </div>
         </div>
       </div>
     </header>

@@ -17,7 +17,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import Logo from "./logo"
-import { ThemeToggle } from "./theme-toggle"
 
 interface MainNavProps {
   items: {
@@ -33,6 +32,7 @@ export function MainNav({ items }: MainNavProps) {
 
   return (
     <>
+      {/* Desktop Navigation */}
       <nav className="hidden md:flex items-center space-x-6 text-sm font-medium">
         {items.map((item) => (
           <Link
@@ -49,20 +49,25 @@ export function MainNav({ items }: MainNavProps) {
           </Link>
         ))}
       </nav>
+
+      {/* Mobile Navigation */}
       <div className="md:hidden">
         <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
           <SheetTrigger asChild>
             <Button
               variant="ghost"
               className="px-0 text-base hover:bg-transparent focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
+              aria-label="Toggle Navigation"
             >
               <Menu className="h-6 w-6" />
-              <span className="sr-only">Toggle Menu</span>
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="pr-0">
+          <SheetContent side="left" className="pr-0 pt-10">
+             <Link href="/" className="flex items-center" onClick={() => setIsMobileMenuOpen(false)}>
+                <Logo />
+            </Link>
             <div className="my-4 h-[calc(100vh-8rem)] pb-10 pl-6">
-              <div className="flex flex-col space-y-3">
+              <div className="flex flex-col space-y-4">
                 {items?.map(
                   (item) =>
                     item.href && (
@@ -70,7 +75,7 @@ export function MainNav({ items }: MainNavProps) {
                         key={item.href}
                         href={item.href}
                         className={cn(
-                          "text-muted-foreground transition-colors hover:text-foreground",
+                          "text-lg font-medium text-muted-foreground transition-colors hover:text-foreground",
                           pathname === item.href && "text-foreground"
                         )}
                         onClick={() => setIsMobileMenuOpen(false)}
