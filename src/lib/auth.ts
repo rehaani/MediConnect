@@ -1,5 +1,6 @@
 
 export type UserRole = 'patient' | 'provider' | 'admin';
+export type Theme = 'light' | 'dark' | 'system';
 
 export type User = {
   name: string;
@@ -7,6 +8,7 @@ export type User = {
   role: UserRole;
   avatar: string;
   language: 'en' | 'hi';
+  theme: Theme;
 };
 
 // This is a mock function. In a real app, you'd get this from your auth provider (e.g., Firebase Auth, NextAuth.js).
@@ -21,6 +23,7 @@ export async function getCurrentUser(role?: UserRole): Promise<User> {
       role: 'patient',
       avatar: 'https://picsum.photos/seed/patient/200/200',
       language: 'en',
+      theme: 'system',
     },
     provider: {
       name: 'Dr. Evelyn Reed',
@@ -28,6 +31,7 @@ export async function getCurrentUser(role?: UserRole): Promise<User> {
       role: 'provider',
       avatar: 'https://picsum.photos/seed/provider/200/200',
       language: 'en',
+      theme: 'dark',
     },
     admin: {
       name: 'Sam Chen',
@@ -35,8 +39,18 @@ export async function getCurrentUser(role?: UserRole): Promise<User> {
       role: 'admin',
       avatar: 'https://picsum.photos/seed/admin/200/200',
       language: 'en',
+      theme: 'light',
     },
   };
 
   return userMap[effectiveRole];
+}
+
+// In a real app, this would write to Firestore.
+export async function updateUserTheme(userId: string, theme: Theme): Promise<void> {
+    console.log(`Simulating update theme for user ${userId} to ${theme}`);
+    // In a real app using Firestore:
+    // const userRef = doc(db, 'users', userId);
+    // await setDoc(userRef, { theme }, { merge: true });
+    return Promise.resolve();
 }

@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -11,9 +12,22 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { getCurrentUser, updateUserTheme } from "@/lib/auth"
 
 export function ThemeToggle() {
   const { setTheme } = useTheme()
+
+  const handleThemeChange = async (theme: 'light' | 'dark' | 'system') => {
+    setTheme(theme);
+    try {
+      // In a real app, you'd get the current user's ID
+      const user = await getCurrentUser();
+      await updateUserTheme(user.email, theme);
+    } catch (error) {
+      // User may not be logged in, which is fine. The theme will be saved in localStorage.
+      console.log("User not logged in, theme preference not saved to profile.");
+    }
+  }
 
   return (
     <DropdownMenu>
@@ -25,13 +39,13 @@ export function ThemeToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => setTheme("light")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("light")}>
           Light
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("dark")}>
           Dark
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("system")}>
+        <DropdownMenuItem onClick={() => handleThemeChange("system")}>
           System
         </DropdownMenuItem>
       </DropdownMenuContent>
