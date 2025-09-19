@@ -2,7 +2,7 @@
 import ProviderDashboard from "@/components/dashboard/provider-dashboard";
 import DashboardCards from "@/components/dashboard/dashboard-cards";
 import { getCurrentUser } from "@/lib/auth";
-import { FEATURES } from "@/lib/dashboard-features";
+import { FEATURES } from "@/lib/dashboard-features.tsx";
 
 export default async function ProviderDashboardPage() {
   const user = await getCurrentUser('provider');

@@ -1,4 +1,3 @@
-
 "use client";
 import { Bot, Calendar, FileText, HeartPulse, Pill, User as UserIcon, Shield, Users, MonitorPlay, UserCog, BarChart, Wrench, FlaskConical } from "lucide-react";
 import type { UserRole } from "./auth";
