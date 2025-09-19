@@ -16,9 +16,10 @@ import {
 export function LanguageToggle() {
   const { i18n } = useTranslation();
 
-  const toggleLanguage = (lang: 'en' | 'hi') => {
+  const changeLanguage = (lang: 'en' | 'hi') => {
     i18n.changeLanguage(lang);
     // In a real app, you would also save this preference to a user's profile in your database.
+    console.log(`Simulating saving language preference: ${lang}`);
   };
 
   return (
@@ -30,10 +31,10 @@ export function LanguageToggle() {
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end">
-        <DropdownMenuItem onClick={() => toggleLanguage("en")}>
+        <DropdownMenuItem onClick={() => changeLanguage("en")}>
           English
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => toggleLanguage("hi")}>
+        <DropdownMenuItem onClick={() => changeLanguage("hi")}>
           हिंदी (Hindi)
         </DropdownMenuItem>
       </DropdownMenuContent>

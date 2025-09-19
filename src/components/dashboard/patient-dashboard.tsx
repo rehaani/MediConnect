@@ -29,8 +29,8 @@ const PatientDashboard = ({ user }: { user: User }) => {
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
 
-  const mapCountryToLanguage = (code: string | null): {lang: string, langName: string} => {
-    const map: Record<string, {lang: string, langName: string}> = {
+  const mapCountryToLanguage = (code: string | null): {lang: 'en' | 'hi' | 'de', langName: string} => {
+    const map: Record<string, {lang: 'en' | 'hi' | 'de', langName: string}> = {
         'IN': { lang: 'hi', langName: 'Hindi' },
         'US': { lang: 'en', langName: 'English' },
         'DE': { lang: 'de', langName: 'German' },
@@ -39,6 +39,12 @@ const PatientDashboard = ({ user }: { user: User }) => {
       return map[code];
     }
     return { lang: 'en', langName: 'English' }; // Default to English
+  };
+  
+  const handleLanguageSwitch = (lang: 'en' | 'hi' | 'de') => {
+    i18n.changeLanguage(lang);
+    // In a real app, you would save this preference to the user's document in Firestore.
+    console.log(`Simulating saving language preference: ${lang}`);
   };
 
   useEffect(() => {
@@ -106,7 +112,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
                             title: t("Language Suggestion"),
                             description: t('LanguageSuggestion', { langName }),
                             duration: 10000,
-                            action: <ToastAction altText={t("Switch")} onClick={() => i18n.changeLanguage(lang)}>{t("Switch")}</ToastAction>,
+                            action: <ToastAction altText={t("Switch")} onClick={() => handleLanguageSwitch(lang)}>{t("Switch")}</ToastAction>,
                         });
                         sessionStorage.setItem('langSuggestionShown', 'true');
                     }

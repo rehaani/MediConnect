@@ -9,7 +9,7 @@ import type { User } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function PatientDashboardPage() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -17,10 +17,14 @@ export default function PatientDashboardPage() {
     async function fetchUser() {
       const userData = await getCurrentUser('patient');
       setUser(userData);
+      // Set initial language based on user preference from "database"
+      if (userData.language && i18n.language !== userData.language) {
+        i18n.changeLanguage(userData.language);
+      }
       setLoading(false);
     }
     fetchUser();
-  }, []);
+  }, [i18n]);
 
 
   if (loading || !user) {
