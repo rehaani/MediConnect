@@ -1,4 +1,6 @@
 
+"use client";
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -7,11 +9,34 @@ import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { MenuProvider } from '@/context/menu-provider';
 import I18nProvider from '@/context/i18n-provider';
+import { usePathname } from 'next/navigation';
+import { useEffect, useState } from 'react';
 
-export const metadata: Metadata = {
-  title: 'MediConnect Auth',
-  description: 'Secure Authentication for Modern Healthcare',
-};
+// export const metadata: Metadata = {
+//   title: 'MediConnect Auth',
+//   description: 'Secure Authentication for Modern Healthcare',
+// };
+
+const authRoutes = ['/login', '/register', '/forgot-password', '/otp-verify', '/welcome'];
+
+function RootLayoutContent({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+  const [isClient, setIsClient] = useState(false);
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  const showHeader = isClient && !authRoutes.includes(pathname) && pathname !== '/';
+
+  return (
+    <div className="relative flex min-h-screen flex-col">
+      {showHeader && <Header />}
+      <main className="flex-1">{children}</main>
+    </div>
+  );
+}
+
 
 export default function RootLayout({
   children,
@@ -21,6 +46,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <title>MediConnect Auth</title>
+        <meta name="description" content="Secure Authentication for Modern Healthcare" />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet" />
@@ -42,10 +69,7 @@ export default function RootLayout({
             disableTransitionOnChange
           >
             <MenuProvider>
-              <div className="relative flex min-h-screen flex-col">
-                <Header />
-                <main className="flex-1">{children}</main>
-              </div>
+              <RootLayoutContent>{children}</RootLayoutContent>
               <Toaster />
             </MenuProvider>
           </ThemeProvider>

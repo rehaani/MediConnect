@@ -19,8 +19,8 @@ import { LanguageToggle } from './language-toggle';
 
 const patientNavItems = [
     { title: 'Dashboard', href: '/patient-dashboard' },
-    { title: 'Appointments', href: '/appointments' },
     { title: 'AI Health Assessor', href: '/ai-health-assessor' },
+    { title: 'Appointments', href: '/appointments' },
     { title: 'Symptom Tracker', href: '/symptom-tracker' },
     { title: 'Document Analyzer', href: '/document-analyzer' },
     { title: 'Medications', href: '/medications' },
@@ -31,6 +31,7 @@ const patientNavItems = [
 
 const providerNavItems = [
     { title: 'Dashboard', href: '/provider-dashboard' },
+    { title: 'AI Health Assessor', href: '/ai-health-assessor' },
     { title: 'Appointments', href: '/appointments' },
     { title: 'Document Analyzer', href: '/document-analyzer' },
     { title: 'Patients', href: '#' },
