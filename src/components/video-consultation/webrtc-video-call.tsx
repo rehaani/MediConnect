@@ -11,6 +11,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import { getCurrentUser } from "@/lib/auth";
+
 
 const servers = {
   iceServers: [
@@ -28,6 +31,7 @@ const servers = {
 
 export default function WebRTCVideoCall() {
   const { toast } = useToast();
+  const router = useRouter();
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
@@ -73,9 +77,22 @@ export default function WebRTCVideoCall() {
 
     if (previousRoomId) {
         toast({ title: "Call ended." });
+        
+        // Role-based redirection logic
+        const user = await getCurrentUser();
+        const role = user.role || 'patient';
+        
+        const rolePaths = {
+            patient: '/patient-dashboard',
+            provider: '/provider-dashboard',
+            admin: '/admin-dashboard',
+        };
+        
+        const path = rolePaths[role] || '/patient-dashboard';
+        router.push(path);
     }
 
-  }, [pc, localStream, remoteStream, currentRoomId, toast, callState]);
+  }, [pc, localStream, remoteStream, currentRoomId, toast, callState, router]);
 
   const setupStreams = useCallback(async () => {
     try {
@@ -313,17 +330,10 @@ export default function WebRTCVideoCall() {
         <Card className="max-w-md mx-auto text-center">
             <CardHeader>
                 <CardTitle className="font-headline">Call Ended</CardTitle>
-                <CardDescription>Your video consultation has finished.</CardDescription>
+                <CardDescription>Redirecting to your dashboard...</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-                <p>Thank you for using MediConnect.</p>
-                <Button onClick={() => {
-                  setCallState("idle");
-                  setRoomId("");
-                }}>Start a New Call</Button>
-                <Button asChild variant="outline">
-                    <Link href="/dashboard">Return to Dashboard</Link>
-                </Button>
+            <CardContent className="flex flex-col gap-4 items-center">
+                <Loader2 className="h-8 w-8 animate-spin" />
             </CardContent>
         </Card>
       );
@@ -369,6 +379,8 @@ export default function WebRTCVideoCall() {
     
 
   
+
+    
 
     
 
