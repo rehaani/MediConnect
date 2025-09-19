@@ -11,27 +11,29 @@ import { MenuProvider } from '@/context/menu-provider';
 import I18nProvider from '@/context/i18n-provider';
 import { usePathname } from 'next/navigation';
 import { useEffect, useState } from 'react';
-
-// export const metadata: Metadata = {
-//   title: 'MediConnect Auth',
-//   description: 'Secure Authentication for Modern Healthcare',
-// };
+import { getCurrentUser, User } from '@/lib/auth';
 
 const authRoutes = ['/login', '/register', '/forgot-password', '/otp-verify', '/welcome'];
 
 function RootLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [isClient, setIsClient] = useState(false);
+  const [user, setUser] = useState<User | null>(null);
 
   useEffect(() => {
     setIsClient(true);
+    async function fetchUser() {
+        const userData = await getCurrentUser();
+        setUser(userData);
+    }
+    fetchUser();
   }, []);
 
   const showHeader = isClient && !authRoutes.includes(pathname) && pathname !== '/';
 
   return (
     <div className="relative flex min-h-screen flex-col">
-      {showHeader && <Header />}
+      {showHeader && user && <Header user={user} />}
       <main className="flex-1">{children}</main>
     </div>
   );
