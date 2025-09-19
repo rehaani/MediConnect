@@ -1,14 +1,19 @@
 /**
- * @fileOverview Schemas for the health assessment flow.
+ * @fileOverview Schemas for the health assessment and symptom image processing flows.
  *
  * - HealthAssessmentInputSchema - The Zod schema for the input of the healthAssessment function.
  * - HealthAssessmentInput - The TypeScript type for the input of the healthAssessment function.
  * - HealthAssessmentOutputSchema - The Zod schema for the return type of the healthAssessment function.
  * - HealthAssessmentOutput - The TypeScript type for the return type of the healthAssessment function.
+ * - ProcessSymptomImageInputSchema - The Zod schema for the input of the processSymptomImage function.
+ * - ProcessSymptomImageInput - The TypeScript type for the input of the processSymptomImage function.
+ * - ProcessSymptomImageOutputSchema - The Zod schema for the return type of the processSymptomImage function.
+ * - ProcessSymptomImageOutput - The TypeScript type for the return type of the processSymptomImage function.
  */
 
 import {z} from 'genkit';
 
+// Schemas for Health Assessment
 export const HealthAssessmentInputSchema = z.object({
   symptoms: z.string().describe("A detailed description of the user's symptoms."),
   userContext: z
@@ -42,3 +47,21 @@ export const HealthAssessmentOutputSchema = z.object({
     .describe('The type of medical specialist recommended for the user, if any.'),
 });
 export type HealthAssessmentOutput = z.infer<typeof HealthAssessmentOutputSchema>;
+
+
+// Schemas for Symptom Image Processing
+export const ProcessSymptomImageInputSchema = z.object({
+  photoDataUri: z
+    .string()
+    .describe(
+      "A photo of a physical symptom, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
+    ),
+  description: z.string().describe('The user\'s description of the symptom.'),
+});
+export type ProcessSymptomImageInput = z.infer<typeof ProcessSymptomImageInputSchema>;
+
+export const ProcessSymptomImageOutputSchema = z.object({
+  analysis: z.string().describe('A brief analysis of the visual symptom.'),
+  recommendation: z.string().describe('A recommendation based on the visual analysis.'),
+});
+export type ProcessSymptomImageOutput = z.infer<typeof ProcessSymptomImageOutputSchema>;

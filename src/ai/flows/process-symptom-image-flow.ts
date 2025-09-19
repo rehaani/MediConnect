@@ -8,25 +8,16 @@
  */
 
 import {ai} from '@/ai/genkit';
-import {z} from 'genkit';
+import {
+  ProcessSymptomImageInput,
+  ProcessSymptomImageInputSchema,
+  ProcessSymptomImageOutput,
+  ProcessSymptomImageOutputSchema,
+} from '@/ai/schemas/health-assessment';
 
-export const ProcessSymptomImageInputSchema = z.object({
-  photoDataUri: z
-    .string()
-    .describe(
-      "A photo of a physical symptom, as a data URI that must include a MIME type and use Base64 encoding. Expected format: 'data:<mimetype>;base64,<encoded_data>'."
-    ),
-  description: z.string().describe('The user\'s description of the symptom.'),
-});
-export type ProcessSymptomImageInput = z.infer<typeof ProcessSymptomImageInputSchema>;
-
-export const ProcessSymptomImageOutputSchema = z.object({
-  analysis: z.string().describe('A brief analysis of the visual symptom.'),
-  recommendation: z.string().describe('A recommendation based on the visual analysis.'),
-});
-export type ProcessSymptomImageOutput = z.infer<typeof ProcessSymptomImageOutputSchema>;
-
-export async function processSymptomImage(input: ProcessSymptomImageInput): Promise<ProcessSymptomImageOutput> {
+export async function processSymptomImage(
+  input: ProcessSymptomImageInput
+): Promise<ProcessSymptomImageOutput> {
   return processSymptomImageFlow(input);
 }
 
