@@ -4,7 +4,7 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import type { User } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Phone, User as UserIcon, MapPin, Loader2, AlertTriangle, Globe, Video } from "lucide-react";
+import { Phone, User as UserIcon, MapPin, Loader2, AlertTriangle, Globe } from "lucide-react";
 import { Button } from "../ui/button";
 import { MenuContext } from "@/context/menu-provider";
 import { cn } from "@/lib/utils";
@@ -29,37 +29,8 @@ const PatientDashboard = ({ user }: { user: User }) => {
   const { isMobileMenuOpen } = useContext(MenuContext);
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
-  const [showCallInvite, setShowCallInvite] = useState(false);
-  const [incomingCall, setIncomingCall] = useState<{ doctorName: string; roomId: string } | null>(null);
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
-
-  // Simulate receiving a call invite after a delay
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // In a real app, this would be triggered by a Firestore listener
-      const mockCall = { doctorName: "Dr. Evelyn Reed", roomId: "mock-room-123" };
-      setIncomingCall(mockCall);
-      setShowCallInvite(true);
-    }, 5000); // Show invite after 5 seconds
-
-    return () => clearTimeout(timer);
-  }, []);
-
-  const handleAcceptCall = () => {
-    if (incomingCall) {
-      router.push(`/video-consultation?roomId=${incomingCall.roomId}`);
-    }
-  };
-
-  const handleDeclineCall = () => {
-    setShowCallInvite(false);
-    setIncomingCall(null);
-    toast({
-        title: "Call Declined",
-        description: `The call from ${incomingCall?.doctorName} was declined.`
-    });
-  };
 
   const mapCountryToLanguage = (code: string | null): {lang: 'en' | 'hi' | 'de', langName: string} => {
     const map: Record<string, {lang: 'en' | 'hi' | 'de', langName: string}> = {
@@ -182,28 +153,6 @@ const PatientDashboard = ({ user }: { user: User }) => {
 
   return (
     <>
-      <AlertDialog open={showCallInvite}>
-          <AlertDialogContent>
-              <AlertDialogHeader>
-                  <AlertDialogTitle className="flex items-center gap-2">
-                      <Video className="text-primary animate-pulse" />
-                      Incoming Call
-                  </AlertDialogTitle>
-                  <AlertDialogDescription>
-                      {incomingCall?.doctorName} is calling you for your consultation.
-                  </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                  <Button variant="destructive" onClick={handleDeclineCall}>
-                      Decline
-                  </Button>
-                  <AlertDialogAction onClick={handleAcceptCall}>
-                      Join Call
-                  </AlertDialogAction>
-              </AlertDialogFooter>
-          </AlertDialogContent>
-      </AlertDialog>
-
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
           <Card className="relative z-0 lg:col-span-2">
               <CardHeader>
