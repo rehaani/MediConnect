@@ -2,41 +2,11 @@
 import ProviderDashboard from "@/components/dashboard/provider-dashboard";
 import DashboardCards from "@/components/dashboard/dashboard-cards";
 import { getCurrentUser } from "@/lib/auth";
-import { Calendar, FileText, Users, MonitorPlay } from "lucide-react";
-
-const providerFeatures = [
-    { 
-      name: 'Patient Queue', 
-      path: '/provider-dashboard', 
-      icon: <Users />, 
-      bgColor: '#3b82f6',
-      description: "View today's patient list."
-    },
-    { 
-      name: 'Appointments', 
-      path: '/appointments', 
-      icon: <Calendar />, 
-      bgColor: '#10b981',
-      description: 'Manage your schedule.'
-    },
-    { 
-      name: 'Document Analyzer', 
-      path: '/document-analyzer', 
-      icon: <FileText />, 
-      bgColor: '#8b5cf6',
-      description: 'Analyze patient documents.'
-    },
-    { 
-      name: 'Start Consultation', 
-      path: '/video-consultation', 
-      icon: <MonitorPlay />, 
-      bgColor: '#f97316',
-      description: 'Launch a video call room.'
-    },
-];
+import { FEATURES } from "@/lib/dashboard-features";
 
 export default async function ProviderDashboardPage() {
   const user = await getCurrentUser('provider');
+  const providerFeatures = FEATURES.filter(feature => feature.roles.includes('provider'));
 
   return (
     <div className="container mx-auto p-4 md:p-8 space-y-6">

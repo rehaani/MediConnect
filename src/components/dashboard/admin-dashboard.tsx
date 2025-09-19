@@ -1,48 +1,13 @@
 
 import type { User } from "@/lib/auth";
-import { Users, ShieldCheck, Server, Database, Activity, FlaskConical, BarChart, FileText, UserCog, Wrench } from "lucide-react";
+import { Users, ShieldCheck, Server, Database } from "lucide-react";
 import DashboardCards from "./dashboard-cards";
+import { FEATURES } from "@/lib/dashboard-features";
 
 
 const AdminDashboard = ({ user }: { user: User }) => {
   
-  const adminFeatures = [
-    { 
-      name: 'User Management', 
-      path: '/admin-dashboard/users', 
-      icon: <UserCog />, 
-      bgColor: 'bg-blue-500',
-      description: 'Manage user roles and permissions.'
-    },
-    { 
-      name: 'Platform Analytics', 
-      path: '/admin-dashboard/analytics', 
-      icon: <BarChart />, 
-      bgColor: 'bg-green-500',
-      description: 'View usage statistics and metrics.'
-    },
-    { 
-      name: 'Content Moderation', 
-      path: '/admin-dashboard/moderation', 
-      icon: <FileText />, 
-      bgColor: 'bg-yellow-500',
-      description: 'Review and moderate user content.'
-    },
-    { 
-      name: 'Platform Settings', 
-      path: '/admin-dashboard/settings', 
-      icon: <Wrench />, 
-      bgColor: 'bg-purple-500',
-      description: 'Configure global app settings.'
-    },
-    { 
-      name: 'Test Suite', 
-      path: '/admin-dashboard/test-suite', 
-      icon: <FlaskConical />, 
-      bgColor: 'bg-red-500',
-      description: 'Run automated system checks.'
-    },
-  ];
+  const adminFeatures = FEATURES.filter(feature => feature.roles.includes('admin'));
 
   return (
      <div className="space-y-6">

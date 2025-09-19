@@ -7,74 +7,16 @@ import type { User } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import DashboardCards from "@/components/dashboard/dashboard-cards";
-import { Bot, Calendar, FileText, HeartPulse, Pill, User as UserIcon, Shield, Users } from "lucide-react";
 import PatientDashboard from "@/components/dashboard/patient-dashboard";
-
-
-const patientFeatures = [
-    { 
-      name: 'AI Health Assessor', 
-      path: '/ai-health-assessor', 
-      icon: <Bot />, 
-      bgColor: '#3b82f6',
-      description: 'Get a preliminary health check.'
-    },
-    { 
-      name: 'Appointments', 
-      path: '/appointments', 
-      icon: <Calendar />, 
-      bgColor: '#10b981',
-      description: 'Schedule new appointments.'
-    },
-    { 
-      name: 'Symptom Tracker', 
-      path: '/symptom-tracker', 
-      icon: <HeartPulse />, 
-      bgColor: '#f97316',
-      description: 'Log your daily symptoms.'
-    },
-    { 
-      name: 'Document Analyzer', 
-      path: '/document-analyzer', 
-      icon: <FileText />, 
-      bgColor: '#8b5cf6',
-      description: 'Analyze medical documents.'
-    },
-    { 
-      name: 'Medications', 
-      path: '/medications', 
-      icon: <Pill />, 
-      bgColor: '#ec4899',
-      description: 'Manage your medications.'
-    },
-    { 
-      name: 'Profile', 
-      path: '/profile', 
-      icon: <UserIcon />, 
-      bgColor: '#6366f1',
-      description: 'Update your user profile.'
-    },
-    {
-      name: 'Family',
-      path: '/family',
-      icon: <Users />,
-      bgColor: '#14b8a6',
-      description: 'Manage family members.'
-    },
-     {
-      name: 'Video Consultation',
-      path: '/video-consultation',
-      icon: <Shield />,
-      bgColor: '#d946ef',
-      description: 'Start a video call.'
-    }
-];
+import { FEATURES } from "@/lib/dashboard-features";
 
 
 export default function PatientDashboardPage() {
   const { t, i18n } = useTranslation();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const patientFeatures = FEATURES.filter(feature => feature.roles.includes('patient'));
 
   useEffect(() => {
     async function fetchUser() {
