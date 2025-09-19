@@ -9,7 +9,6 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2 } from "lucide-react";
-import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 
@@ -18,6 +17,11 @@ const servers = {
     {
       urls: ["stun:stun1.l.google.com:19302", "stun:stun2.l.google.com:19302"],
     },
+    {
+      urls: 'turn:openrelay.metered.ca:80',
+      username: 'openrelayproject',
+      credential: 'openrelayproject'
+    }
   ],
   iceCandidatePoolSize: 10,
 };
@@ -39,6 +43,29 @@ export default function WebRTCVideoCall() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
+  const hangUp = useCallback(async () => {
+    if (!pc && !localStream) return; // Prevent multiple hang-up calls
+
+    pc?.close();
+    localStream?.getTracks().forEach(track => track.stop());
+    remoteStream?.getTracks().forEach(track => track.stop());
+    
+    if (currentRoomId) {
+      const roomRef = ref(db, `calls/${currentRoomId}`);
+      await remove(roomRef);
+    }
+
+    setCallState("ended");
+    setLocalStream(null);
+    setRemoteStream(null);
+    setPc(null);
+    setCurrentRoomId(prev => {
+        if(prev) toast({ title: "Call ended." });
+        return "";
+    });
+    setRoomId("");
+  }, [pc, localStream, remoteStream, currentRoomId, toast]);
+
   const setupStreams = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -59,48 +86,10 @@ export default function WebRTCVideoCall() {
     }
   }, [toast]);
 
-  const createRoom = useCallback(async () => {
-    setCallState("creating");
-    const stream = await setupStreams();
-    if (!stream) return;
-
+  const initializePeerConnection = useCallback((stream: MediaStream) => {
     const newPc = new RTCPeerConnection(servers);
-    stream.getTracks().forEach(track => newPc.addTrack(track, stream));
-
-    // Using a simpler random string for the room ID
-    const newRoomId = Math.random().toString(36).substring(2, 9);
-    const newRoomRef = ref(db, `calls/${newRoomId}`);
-
-    setCurrentRoomId(newRoomId);
-    setCallState("active");
     
-    const offerCandidatesRef = ref(db, `calls/${newRoomId}/offerCandidates`);
-    newPc.onicecandidate = event => {
-        if (event.candidate) {
-            const candidateRef = ref(db, `calls/${newRoomId}/offerCandidates/${event.candidate.candidate}`);
-            set(candidateRef, event.candidate.toJSON());
-        }
-    };
-
-    const offerDescription = await newPc.createOffer();
-    await newPc.setLocalDescription(offerDescription);
-    const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
-    await set(newRoomRef, { offer });
-
-    onValue(ref(db, `calls/${newRoomId}/answer`), (snapshot) => {
-      if (snapshot.exists() && !newPc.currentRemoteDescription) {
-        const answerDescription = new RTCSessionDescription(snapshot.val());
-        newPc.setRemoteDescription(answerDescription);
-      }
-    });
-
-    onValue(ref(db, `calls/${newRoomId}/answerCandidates`), (snapshot) => {
-        snapshot.forEach((childSnapshot) => {
-            if (childSnapshot.exists()) {
-                newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val()));
-            }
-        });
-    });
+    stream.getTracks().forEach(track => newPc.addTrack(track, stream));
 
     newPc.ontrack = (event) => {
         setRemoteStream(event.streams[0]);
@@ -109,10 +98,64 @@ export default function WebRTCVideoCall() {
         }
     };
 
-    setPc(newPc);
-    onDisconnect(newRoomRef).remove();
+    // Listen for connection state changes
+    newPc.oniceconnectionstatechange = () => {
+        if (newPc.iceConnectionState === 'disconnected' || newPc.iceConnectionState === 'failed') {
+            console.log('Peer disconnected.');
+            hangUp();
+        }
+    };
     
-  }, [setupStreams]);
+    setPc(newPc);
+    return newPc;
+  }, [hangUp]);
+
+  const createRoom = useCallback(async () => {
+    setCallState("creating");
+    const stream = await setupStreams();
+    if (!stream) return;
+
+    const newPc = initializePeerConnection(stream);
+    
+    // Using a simpler random string for the room ID
+    const newRoomId = Math.random().toString(36).substring(2, 9);
+    const roomRef = ref(db, `calls/${newRoomId}`);
+    onDisconnect(roomRef).remove(); // Ensure cleanup on tab close
+
+    setCurrentRoomId(newRoomId);
+    
+    const offerCandidatesRef = ref(db, `calls/${newRoomId}/offerCandidates`);
+    newPc.onicecandidate = event => {
+        if (event.candidate) {
+            const candidateRef = ref(db, `calls/${newRoomId}/offerCandidates/${Math.random().toString(36).substring(2)}`);
+            set(candidateRef, event.candidate.toJSON());
+        }
+    };
+
+    const offerDescription = await newPc.createOffer();
+    await newPc.setLocalDescription(offerDescription);
+    const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
+    await set(roomRef, { offer });
+
+    setCallState("active");
+
+    onValue(ref(db, `calls/${newRoomId}/answer`), async (snapshot) => {
+      if (snapshot.exists() && !newPc.currentRemoteDescription) {
+        const answerDescription = new RTCSessionDescription(snapshot.val());
+        await newPc.setRemoteDescription(answerDescription);
+      }
+    });
+
+    onValue(ref(db, `calls/${newRoomId}/answerCandidates`), (snapshot) => {
+        snapshot.forEach((childSnapshot) => {
+            if (childSnapshot.exists()) {
+                newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val())).catch(e => console.error("Error adding answer candidate", e));
+                remove(childSnapshot.ref);
+            }
+        });
+    });
+
+  }, [setupStreams, initializePeerConnection]);
 
   const joinRoom = useCallback(async () => {
     if (!roomId) {
@@ -132,23 +175,14 @@ export default function WebRTCVideoCall() {
     const stream = await setupStreams();
     if (!stream) return;
 
+    const newPc = initializePeerConnection(stream);
     setCurrentRoomId(roomId);
-    setCallState("active");
-
-    const newPc = new RTCPeerConnection(servers);
-    stream.getTracks().forEach(track => newPc.addTrack(track, stream));
-
+    
+    const answerCandidatesRef = ref(db, `calls/${roomId}/answerCandidates`);
     newPc.onicecandidate = event => {
         if (event.candidate) {
-            const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${event.candidate.candidate}`);
+            const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${Math.random().toString(36).substring(2)}`);
             set(candidateRef, event.candidate.toJSON());
-        }
-    };
-
-    newPc.ontrack = (event) => {
-        setRemoteStream(event.streams[0]);
-        if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = event.streams[0];
         }
     };
     
@@ -160,35 +194,19 @@ export default function WebRTCVideoCall() {
     const answer = { type: answerDescription.type, sdp: answerDescription.sdp };
     await set(ref(db, `calls/${roomId}/answer`), answer);
 
+    setCallState("active");
+
     onValue(ref(db, `calls/${roomId}/offerCandidates`), (snapshot) => {
         snapshot.forEach((childSnapshot) => {
             if(childSnapshot.exists()){
-                newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val()));
+                newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val())).catch(e => console.error("Error adding offer candidate", e));
+                remove(childSnapshot.ref);
             }
         });
     });
 
-    setPc(newPc);
-  }, [roomId, setupStreams, toast]);
+  }, [roomId, setupStreams, toast, initializePeerConnection]);
 
-  const hangUp = async () => {
-    pc?.close();
-    localStream?.getTracks().forEach(track => track.stop());
-    remoteStream?.getTracks().forEach(track => track.stop());
-    
-    if (currentRoomId) {
-      const roomRef = ref(db, `calls/${currentRoomId}`);
-      await remove(roomRef);
-    }
-
-    setCallState("ended");
-    setLocalStream(null);
-    setRemoteStream(null);
-    setPc(null);
-    setRoomId("");
-    setCurrentRoomId("");
-    toast({ title: "Call ended." });
-  };
   
   const toggleMute = () => {
     if (localStream) {
@@ -239,7 +257,7 @@ export default function WebRTCVideoCall() {
             )}
             
             {/* Local Video (PIP) */}
-            <div className="absolute top-4 right-4 h-48 w-72 rounded-lg overflow-hidden border-2 border-primary z-20">
+             <div className={cn("absolute top-4 right-4 h-48 w-72 rounded-lg overflow-hidden border-2 border-primary z-20 transition-opacity", localStream ? "opacity-100" : "opacity-0")}>
                  <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
                  {!isVideoEnabled && (
                     <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
@@ -271,9 +289,10 @@ export default function WebRTCVideoCall() {
                 <CardTitle className="font-headline">Call Ended</CardTitle>
                 <CardDescription>Your video consultation has finished.</CardDescription>
             </CardHeader>
-            <CardContent>
-                <p className="mb-4">Thank you for using MediConnect.</p>
-                <Button asChild>
+            <CardContent className="flex flex-col gap-4">
+                <p>Thank you for using MediConnect.</p>
+                <Button onClick={() => setCallState("idle")}>Start a New Call</Button>
+                <Button asChild variant="outline">
                     <Link href="/dashboard">Return to Dashboard</Link>
                 </Button>
             </CardContent>
@@ -291,7 +310,7 @@ export default function WebRTCVideoCall() {
         <div className="space-y-4">
             <div className="flex flex-col sm:flex-row gap-4">
                 <Button onClick={createRoom} className="flex-1" disabled={isLoading}>
-                    {isLoading && callState === "creating" ? <Loader2 className="animate-spin" /> : null}
+                    {isLoading && callState === "creating" ? <Loader2 className="animate-spin mr-2" /> : null}
                     Create Room
                 </Button>
             </div>
@@ -308,8 +327,8 @@ export default function WebRTCVideoCall() {
                 className="flex-1"
                 disabled={isLoading}
               />
-              <Button onClick={joinRoom} variant="secondary" className="flex-1" disabled={isLoading}>
-                {isLoading && callState === "joining" ? <Loader2 className="animate-spin" /> : null}
+              <Button onClick={joinRoom} variant="secondary" className="flex-1" disabled={isLoading || !roomId}>
+                {isLoading && callState === "joining" ? <Loader2 className="animate-spin mr-2" /> : null}
                 Join Room
               </Button>
             </div>
@@ -319,3 +338,5 @@ export default function WebRTCVideoCall() {
   );
 }
     
+
+  
