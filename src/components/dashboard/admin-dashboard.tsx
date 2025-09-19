@@ -1,22 +1,12 @@
 import type { User } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, ShieldCheck, BarChart, IndianRupee, Stethoscope, Activity, Server, Database } from "lucide-react";
+import { Users, ShieldCheck, Server, Database, Activity } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 
 const AdminDashboard = ({ user }: { user: User }) => {
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
       {/* Key Metrics */}
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Consultations</CardTitle>
-          <Stethoscope className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">+2,350</div>
-          <p className="text-xs text-muted-foreground">+180.1% from last month</p>
-        </CardContent>
-      </Card>
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -39,7 +29,7 @@ const AdminDashboard = ({ user }: { user: User }) => {
       </Card>
       
       {/* System Health & User Management */}
-      <Card className="lg:col-span-2">
+      <Card className="lg:col-span-1">
         <CardHeader>
           <CardTitle className="font-headline">System Health</CardTitle>
           <CardDescription>Real-time monitoring of platform services.</CardDescription>
@@ -78,7 +68,7 @@ const AdminDashboard = ({ user }: { user: User }) => {
         </CardContent>
       </Card>
 
-      <Card className="lg:col-span-2">
+      <Card className="lg:col-span-3">
         <CardHeader>
           <CardTitle className="font-headline">User Growth</CardTitle>
           <CardDescription>Monthly active user goal.</CardDescription>
