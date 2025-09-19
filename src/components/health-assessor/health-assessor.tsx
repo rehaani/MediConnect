@@ -1,6 +1,7 @@
 
 "use client";
 
+import * as React from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm, Controller } from "react-hook-form";
 import * as z from "zod";
@@ -9,6 +10,7 @@ import { Bot, Loader2, Mic, Send, Siren, Image as ImageIcon, ChevronLeft, Chevro
 import {
   HealthAssessmentInput,
   healthAssessment,
+  HealthAssessmentOutput
 } from "@/ai/flows/health-assessment-flow";
 import { processSymptomImage, ProcessSymptomImageOutput } from "@/ai/flows/process-symptom-image-flow";
 
