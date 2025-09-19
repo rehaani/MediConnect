@@ -15,6 +15,7 @@ import Logo from './logo';
 import { getCurrentUser, UserRole } from '@/lib/auth';
 import { MainNav } from './main-nav';
 import { ThemeToggle } from './theme-toggle';
+import { LanguageToggle } from './language-toggle';
 
 const patientNavItems = [
     { title: 'Dashboard', href: '/patient-dashboard' },
@@ -120,6 +121,7 @@ export default async function Header() {
                 <Logo />
             </Link>
             <div className="flex items-center space-x-2">
+                <LanguageToggle />
                 <ThemeToggle />
                 <UserMenu />
             </div>
@@ -127,6 +129,7 @@ export default async function Header() {
         <div className="hidden md:flex flex-1 items-center justify-end space-x-2">
           <MainNav items={roleNavItems} />
           <div className="flex items-center space-x-4">
+            <LanguageToggle />
             <ThemeToggle />
             <UserMenu />
           </div>

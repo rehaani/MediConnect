@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
@@ -5,6 +6,7 @@ import Header from '@/components/layout/header';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { MenuProvider } from '@/context/menu-provider';
+import I18nProvider from '@/context/i18n-provider';
 
 export const metadata: Metadata = {
   title: 'MediConnect Auth',
@@ -32,20 +34,22 @@ export default function RootLayout({
           'min-h-screen bg-background font-body antialiased',
         )}
       >
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <MenuProvider>
-            <div className="relative flex min-h-screen flex-col">
-              <Header />
-              <main className="flex-1">{children}</main>
-            </div>
-            <Toaster />
-          </MenuProvider>
-        </ThemeProvider>
+        <I18nProvider>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <MenuProvider>
+              <div className="relative flex min-h-screen flex-col">
+                <Header />
+                <main className="flex-1">{children}</main>
+              </div>
+              <Toaster />
+            </MenuProvider>
+          </ThemeProvider>
+        </I18nProvider>
       </body>
     </html>
   );

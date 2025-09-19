@@ -9,6 +9,9 @@ import { Button } from "../ui/button";
 import { MenuContext } from "@/context/menu-provider";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { useTranslation } from "react-i18next";
+import { ToastAction } from "../ui/toast";
+
 
 // Mock data for emergency contacts
 const emergencyContacts = [
@@ -24,6 +27,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
 
   const mapCountryToLanguage = (code: string | null): {lang: string, langName: string} => {
     const map: Record<string, {lang: string, langName: string}> = {
@@ -93,16 +97,16 @@ const PatientDashboard = ({ user }: { user: User }) => {
                     localStorage.setItem('countryCode', code);
 
                     // Language Suggestion Logic
-                    const currentLang = 'en'; // Assuming current app language is English
+                    const currentLang = i18n.language;
                     const { lang, langName } = mapCountryToLanguage(code);
                     const suggestionShown = sessionStorage.getItem('langSuggestionShown');
 
                     if (lang !== currentLang && !suggestionShown) {
                         toast({
-                            title: "Language Suggestion",
-                            description: `It looks like you're in a region where ${langName} is spoken. Would you like to switch?`,
+                            title: t("Language Suggestion"),
+                            description: t('LanguageSuggestion', { langName }),
                             duration: 10000,
-                            // action: <ToastAction altText="Switch" onClick={() => console.log(`Switching to ${lang}`)}>Switch</ToastAction>,
+                            action: <ToastAction altText={t("Switch")} onClick={() => i18n.changeLanguage(lang)}>{t("Switch")}</ToastAction>,
                         });
                         sessionStorage.setItem('langSuggestionShown', 'true');
                     }
@@ -136,17 +140,17 @@ const PatientDashboard = ({ user }: { user: User }) => {
         map.remove();
     };
 
-  }, [toast]);
+  }, [toast, i18n, t]);
 
   return (
     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         <Card className="relative z-0 lg:col-span-2">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2 font-headline">
-                    <MapPin /> Live Location
+                    <MapPin /> {t('Live Location')}
                 </CardTitle>
                 <CardDescription>
-                    Your current location for emergency services and language preferences.
+                    {t('Your current location for emergency services and language preferences.')}
                 </CardDescription>
             </CardHeader>
             <CardContent>
@@ -178,10 +182,10 @@ const PatientDashboard = ({ user }: { user: User }) => {
             <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 font-headline">
-                        <UserIcon /> Emergency Contacts
+                        <UserIcon /> {t('Emergency Contacts')}
                     </CardTitle>
                     <CardDescription>
-                        Your designated contacts for emergency situations.
+                        {t('Your designated contacts for emergency situations.')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -202,10 +206,10 @@ const PatientDashboard = ({ user }: { user: User }) => {
              <Card>
                 <CardHeader>
                     <CardTitle className="flex items-center gap-2 font-headline">
-                       <Globe /> Region
+                       <Globe /> {t('Region')}
                     </CardTitle>
                      <CardDescription>
-                       Your detected region for language and service personalization.
+                       {t('Your detected region for language and service personalization.')}
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -227,5 +231,3 @@ const PatientDashboard = ({ user }: { user: User }) => {
 };
 
 export default PatientDashboard;
-
-

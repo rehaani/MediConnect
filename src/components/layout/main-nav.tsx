@@ -5,6 +5,7 @@ import * as React from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { MenuContext } from "@/context/menu-provider"
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils"
 import { Menu } from "lucide-react"
@@ -28,6 +29,7 @@ interface MainNavProps {
 export function MainNav({ items }: MainNavProps) {
   const pathname = usePathname()
   const { isMobileMenuOpen, setIsMobileMenuOpen } = React.useContext(MenuContext);
+  const { t } = useTranslation();
 
   return (
     <>
@@ -43,7 +45,7 @@ export function MainNav({ items }: MainNavProps) {
                 : "text-foreground/60"
             )}
           >
-            {item.title}
+            {t(item.title)}
           </Link>
         ))}
       </nav>
@@ -73,7 +75,7 @@ export function MainNav({ items }: MainNavProps) {
                         )}
                         onClick={() => setIsMobileMenuOpen(false)}
                       >
-                        {item.title}
+                        {t(item.title)}
                       </Link>
                     )
                 )}
