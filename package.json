@@ -9,7 +9,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:unit": "jest",
+    "test:e2e": "firebase emulators:exec --only firestore,auth,functions 'cypress run'",
+    "test": "npm run test:unit && npm run test:e2e"
   },
   "dependencies": {
     "@simplewebauthn/server": "^10.0.0",
