@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { ref, onValue, set, onDisconnect, remove } from "firebase/database";
+import { ref, onValue, set, onDisconnect, remove, get } from "firebase/database";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -11,7 +11,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy } from "lucide-react";
 import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 
-// Using a public STUN server
 const servers = {
   iceServers: [
     {
@@ -40,68 +39,53 @@ export default function WebRTCVideoCall() {
   const setupStreams = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      setLocalStream(stream);
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
+      setLocalStream(stream);
       return stream;
     } catch (error) {
       console.error("Error accessing media devices.", error);
       toast({
         variant: "destructive",
         title: "Media Access Denied",
-        description: "Please enable camera and microphone permissions.",
+        description: "Please enable camera and microphone permissions to start a call.",
       });
       return null;
     }
   }, [toast]);
 
-  const createPeerConnection = useCallback(() => {
-    const newPc = new RTCPeerConnection(servers);
-    
-    newPc.onicecandidate = (event) => {
-        if (event.candidate) {
-            const offerCandidatesRef = ref(db, `calls/${currentRoomId}/offerCandidates`);
-            set(ref(db, `calls/${currentRoomId}/offerCandidates/${event.candidate.candidate}`), event.candidate.toJSON());
-        }
-    };
-
-    newPc.ontrack = (event) => {
-        setRemoteStream(event.streams[0]);
-        if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = event.streams[0];
-        }
-    };
-    
-    return newPc;
-  }, [currentRoomId]);
-
   const createRoom = useCallback(async () => {
     const stream = await setupStreams();
     if (!stream) return;
 
-    const newPc = createPeerConnection();
-    
-    stream.getTracks().forEach(track => {
-      newPc.addTrack(track, stream);
-    });
-    
+    const newPc = new RTCPeerConnection(servers);
+    stream.getTracks().forEach(track => newPc.addTrack(track, stream));
+
     const roomRef = ref(db, 'calls');
-    const newRoomRef = ref(db, `calls/${Math.random().toString(36).substring(2, 11)}`);
-    const newRoomId = newRoomRef.key!;
+    // Using a simpler random string for the room ID
+    const newRoomId = Math.random().toString(36).substring(2, 9);
+    const newRoomRef = ref(db, `calls/${newRoomId}`);
+
     setCurrentRoomId(newRoomId);
     setIsCallActive(true);
-
-    const offerDescription = await newPc.createOffer();
-    await newPc.setLocalDescription(offerDescription);
-
-    const offer = {
-      sdp: offerDescription.sdp,
-      type: offerDescription.type,
+    
+    // Setup ICE candidate listeners
+    const offerCandidatesRef = ref(db, `calls/${newRoomId}/offerCandidates`);
+    newPc.onicecandidate = event => {
+        if (event.candidate) {
+            const candidateRef = ref(db, `calls/${newRoomId}/offerCandidates/${event.candidate.candidate}`);
+            set(candidateRef, event.candidate.toJSON());
+        }
     };
 
+    // Create offer
+    const offerDescription = await newPc.createOffer();
+    await newPc.setLocalDescription(offerDescription);
+    const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
     await set(newRoomRef, { offer });
 
+    // Listen for answer
     onValue(ref(db, `calls/${newRoomId}/answer`), (snapshot) => {
       if (snapshot.exists() && !newPc.currentRemoteDescription) {
         const answerDescription = new RTCSessionDescription(snapshot.val());
@@ -109,74 +93,86 @@ export default function WebRTCVideoCall() {
       }
     });
 
+    // Listen for answer candidates
     onValue(ref(db, `calls/${newRoomId}/answerCandidates`), (snapshot) => {
-      snapshot.forEach((childSnapshot) => {
-        if (childSnapshot.exists()) {
-          newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val()));
-        }
-      });
+        snapshot.forEach((childSnapshot) => {
+            if (childSnapshot.exists()) {
+                newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val()));
+            }
+        });
     });
+
+    // Listen for remote stream
+    newPc.ontrack = (event) => {
+        if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = event.streams[0];
+        }
+        setRemoteStream(event.streams[0]);
+    };
 
     setPc(newPc);
 
+    // Setup cleanup on disconnect
     onDisconnect(newRoomRef).remove();
     
-  }, [setupStreams, createPeerConnection]);
+  }, [setupStreams]);
 
   const joinRoom = useCallback(async () => {
     if (!roomId) {
-        toast({variant: "destructive", title: "Room ID required"});
+        toast({variant: "destructive", title: "Room ID required", description: "Please enter a room ID to join."});
         return;
     }
+    
+    const roomRef = ref(db, `calls/${roomId}`);
+    const roomSnapshot = await get(roomRef);
+    if (!roomSnapshot.exists()) {
+        toast({variant: "destructive", title: "Room not found", description: "The room ID you entered is invalid."});
+        return;
+    }
+
     const stream = await setupStreams();
     if (!stream) return;
 
     setCurrentRoomId(roomId);
-    const newPc = new RTCPeerConnection(servers);
+    setIsCallActive(true);
 
-    stream.getTracks().forEach(track => {
-      newPc.addTrack(track, stream);
+    const newPc = new RTCPeerConnection(servers);
+    stream.getTracks().forEach(track => newPc.addTrack(track, stream));
+
+    // Setup ICE candidate listeners
+    const answerCandidatesRef = ref(db, `calls/${roomId}/answerCandidates`);
+    newPc.onicecandidate = event => {
+        if (event.candidate) {
+            const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${event.candidate.candidate}`);
+            set(candidateRef, event.candidate.toJSON());
+        }
+    };
+
+    // Listen for remote stream
+    newPc.ontrack = (event) => {
+        if (remoteVideoRef.current) {
+            remoteVideoRef.current.srcObject = event.streams[0];
+        }
+        setRemoteStream(event.streams[0]);
+    };
+    
+    const offer = roomSnapshot.val().offer;
+    await newPc.setRemoteDescription(new RTCSessionDescription(offer));
+    
+    const answerDescription = await newPc.createAnswer();
+    await newPc.setLocalDescription(answerDescription);
+    const answer = { type: answerDescription.type, sdp: answerDescription.sdp };
+    await set(ref(db, `calls/${roomId}/answer`), answer);
+
+    // Listen for offer candidates
+    onValue(ref(db, `calls/${roomId}/offerCandidates`), (snapshot) => {
+        snapshot.forEach((childSnapshot) => {
+            if(childSnapshot.exists()){
+                newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val()));
+            }
+        });
     });
 
-    newPc.onicecandidate = (event) => {
-        if (event.candidate) {
-            set(ref(db, `calls/${roomId}/answerCandidates/${event.candidate.candidate}`), event.candidate.toJSON());
-        }
-    };
-
-    newPc.ontrack = (event) => {
-      setRemoteStream(event.streams[0]);
-      if (remoteVideoRef.current) {
-        remoteVideoRef.current.srcObject = event.streams[0];
-      }
-    };
-
-    const roomRef = ref(db, `calls/${roomId}`);
-    onValue(roomRef, async (snapshot) => {
-        if(snapshot.exists()) {
-            const val = snapshot.val();
-            if (val.offer) {
-                await newPc.setRemoteDescription(new RTCSessionDescription(val.offer));
-                const answerDescription = await newPc.createAnswer();
-                await newPc.setLocalDescription(answerDescription);
-                const answer = {
-                    type: answerDescription.type,
-                    sdp: answerDescription.sdp,
-                };
-                await set(ref(db, `calls/${roomId}/answer`), answer);
-
-                 onValue(ref(db, `calls/${roomId}/offerCandidates`), (snapshot) => {
-                    snapshot.forEach((childSnapshot) => {
-                        if(childSnapshot.exists()){
-                            newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val()));
-                        }
-                    });
-                });
-            }
-        }
-    }, { onlyOnce: true });
-
-    setIsCallActive(true);
     setPc(newPc);
   }, [roomId, setupStreams, toast]);
 
@@ -186,13 +182,15 @@ export default function WebRTCVideoCall() {
     remoteStream?.getTracks().forEach(track => track.stop());
     
     if (currentRoomId) {
-      await remove(ref(db, `calls/${currentRoomId}`));
+      const roomRef = ref(db, `calls/${currentRoomId}`);
+      await remove(roomRef);
     }
 
     setIsCallActive(false);
     setLocalStream(null);
     setRemoteStream(null);
     setPc(null);
+    setRoomId("");
     setCurrentRoomId("");
     toast({ title: "Call ended." });
   };
@@ -233,7 +231,7 @@ export default function WebRTCVideoCall() {
                 <Button onClick={createRoom} className="flex-1">Create Room</Button>
             </div>
             <div className="flex items-center space-x-2">
-                <hr className="flex-grow"/> <span className="text-muted-foreground">OR</span> <hr className="flex-grow"/>
+                <hr className="flex-grow border-border"/> <span className="text-muted-foreground">OR</span> <hr className="flex-grow border-border"/>
             </div>
             <div className="flex flex-col sm:flex-row gap-4">
               <Input
@@ -254,22 +252,29 @@ export default function WebRTCVideoCall() {
                         Your Feed
                     </div>
                 </div>
-                 <div className="relative aspect-video rounded-lg bg-muted overflow-hidden">
+                 <div className="relative aspect-video rounded-lg bg-muted overflow-hidden flex items-center justify-center">
                     <video ref={remoteVideoRef} autoPlay playsInline className="w-full h-full object-cover"/>
+                    {!remoteStream && (
+                        <div className="absolute text-muted-foreground text-center">
+                           <p>Waiting for the other person to join...</p>
+                        </div>
+                    )}
                     <div className="absolute bottom-2 left-2 bg-black/50 text-white text-sm p-1 rounded">
                         Remote Feed
                     </div>
                 </div>
             </div>
-            <Alert>
-                <AlertTitle className="flex items-center justify-between">
-                    <span>Room ID: {currentRoomId}</span>
-                    <Button variant="ghost" size="icon" onClick={copyRoomId}>
-                        <Copy className="h-4 w-4" />
-                    </Button>
-                </AlertTitle>
-                <AlertDescription>Share this ID with the other person to join the call.</AlertDescription>
-            </Alert>
+            {currentRoomId && (
+                <Alert>
+                    <AlertTitle className="flex items-center justify-between">
+                        <span>Room ID: {currentRoomId}</span>
+                        <Button variant="ghost" size="icon" onClick={copyRoomId}>
+                            <Copy className="h-4 w-4" />
+                        </Button>
+                    </AlertTitle>
+                    <AlertDescription>Share this ID with the other person to join the call.</AlertDescription>
+                </Alert>
+            )}
             <div className="flex justify-center gap-4 rounded-lg bg-muted p-2">
                 <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon" aria-label={isMuted ? "Unmute" : "Mute"}>
                     {isMuted ? <MicOff /> : <Mic />}
@@ -287,4 +292,3 @@ export default function WebRTCVideoCall() {
     </Card>
   );
 }
-
