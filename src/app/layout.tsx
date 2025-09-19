@@ -8,10 +8,12 @@ import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { MenuProvider } from '@/context/menu-provider';
 import I18nProvider from '@/context/i18n-provider';
+import FloatingButtons from '@/components/layout/floating-buttons';
 
 function RootLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative flex min-h-screen flex-col">
+      <FloatingButtons />
       <main className="flex-1">{children}</main>
     </div>
   );
