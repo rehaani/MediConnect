@@ -31,7 +31,7 @@ const providerNavItems = [
 const adminNavItems = [
     { title: 'Dashboard', href: '/admin-dashboard' },
     { title: 'Users', href: '/admin-dashboard/users' },
-    { title: 'Analytics', href: '#' },
+    { title: 'Analytics', href: '/admin-dashboard/analytics' },
     { title: 'Settings', href: '#' },
 ];
 
