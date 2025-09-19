@@ -8,7 +8,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { Skeleton } from "@/components/ui/skeleton";
 import DashboardCards from "@/components/dashboard/dashboard-cards";
 import PatientDashboard from "@/components/dashboard/patient-dashboard";
-import { FEATURES } from "@/lib/dashboard-features.tsx";
+import { FEATURES } from "@/lib/dashboard-features.ts";
 
 
 export default function PatientDashboardPage() {

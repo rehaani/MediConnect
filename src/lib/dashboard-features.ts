@@ -1,5 +1,4 @@
 
-"use client";
 import type { UserRole } from "./auth";
 
 export type Feature = {

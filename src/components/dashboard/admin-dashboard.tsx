@@ -2,7 +2,7 @@
 import type { User } from "@/lib/auth";
 import { Users, ShieldCheck, Server, Database } from "lucide-react";
 import DashboardCards from "./dashboard-cards";
-import { FEATURES } from "@/lib/dashboard-features.tsx";
+import { FEATURES } from "@/lib/dashboard-features.ts";
 
 
 const AdminDashboard = ({ user }: { user: User }) => {
