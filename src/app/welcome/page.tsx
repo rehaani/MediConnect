@@ -91,9 +91,14 @@ export default function WelcomePage() {
       <footer className="bg-muted py-6">
         <div className="container mx-auto flex flex-col md:flex-row items-center justify-between text-center md:text-left">
           <Logo />
-          <p className="text-sm text-muted-foreground mt-4 md:mt-0">
-            &copy; {new Date().getFullYear()} MediConnect. All Rights Reserved.
-          </p>
+          <div className="text-sm text-muted-foreground mt-4 md:mt-0 space-y-1">
+            <p>
+              &copy; {new Date().getFullYear()} MediConnect. All Rights Reserved.
+            </p>
+            <p>
+              Map data &copy; <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer" className="underline">OpenStreetMap</a> contributors.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
