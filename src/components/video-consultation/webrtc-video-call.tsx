@@ -44,36 +44,33 @@ export default function WebRTCVideoCall() {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
   const hangUp = useCallback(async () => {
-    if (!pc && !localStream) return;
-
-    pc?.close();
-
+    if (pc) {
+      pc.close();
+    }
     if (localStream) {
-        localStream.getTracks().forEach(track => track.stop());
+      localStream.getTracks().forEach(track => track.stop());
     }
     if (remoteStream) {
-        remoteStream.getTracks().forEach(track => track.stop());
+      remoteStream.getTracks().forEach(track => track.stop());
     }
-
     if (currentRoomId) {
-        const roomRef = ref(db, `calls/${currentRoomId}`);
-        await remove(roomRef);
+      const roomRef = ref(db, `calls/${currentRoomId}`);
+      await remove(roomRef);
     }
     
-    setCallState("ended");
+    setPc(null);
     setLocalStream(null);
     setRemoteStream(null);
-    setPc(null);
     
+    setCallState("ended");
     const previousRoomId = currentRoomId;
     setCurrentRoomId("");
-    setRoomId("");
 
     if (previousRoomId) {
         toast({ title: "Call ended." });
     }
 
-}, [pc, localStream, remoteStream, currentRoomId, toast]);
+  }, [pc, localStream, remoteStream, currentRoomId, toast]);
 
   const setupStreams = useCallback(async () => {
     try {
@@ -300,7 +297,10 @@ export default function WebRTCVideoCall() {
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
                 <p>Thank you for using MediConnect.</p>
-                <Button onClick={() => setCallState("idle")}>Start a New Call</Button>
+                <Button onClick={() => {
+                  setCallState("idle");
+                  setRoomId("");
+                }}>Start a New Call</Button>
                 <Button asChild variant="outline">
                     <Link href="/dashboard">Return to Dashboard</Link>
                 </Button>
@@ -349,5 +349,7 @@ export default function WebRTCVideoCall() {
     
 
   
+
+    
 
     
