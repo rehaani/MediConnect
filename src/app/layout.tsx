@@ -4,36 +4,14 @@
 import type { Metadata } from 'next';
 import './globals.css';
 import { Toaster } from '@/components/ui/toaster';
-import Header from '@/components/layout/header';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/layout/theme-provider';
 import { MenuProvider } from '@/context/menu-provider';
 import I18nProvider from '@/context/i18n-provider';
-import { usePathname } from 'next/navigation';
-import { useEffect, useState } from 'react';
-import { getCurrentUser, User } from '@/lib/auth';
-
-const authRoutes = ['/login', '/register', '/forgot-password', '/otp-verify', '/welcome'];
 
 function RootLayoutContent({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const [isClient, setIsClient] = useState(false);
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    setIsClient(true);
-    async function fetchUser() {
-        const userData = await getCurrentUser();
-        setUser(userData);
-    }
-    fetchUser();
-  }, []);
-
-  const showHeader = isClient && !authRoutes.includes(pathname) && pathname !== '/';
-
   return (
     <div className="relative flex min-h-screen flex-col">
-      {showHeader && user && <Header user={user} />}
       <main className="flex-1">{children}</main>
     </div>
   );
