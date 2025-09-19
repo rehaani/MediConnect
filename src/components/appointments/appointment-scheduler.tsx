@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -8,8 +9,8 @@ import { Label } from "@/components/ui/label";
 import { useState, useTransition } from "react";
 import type { FindDoctorInput, FindDoctorOutput } from "@/ai/flows/find-doctor-flow";
 import { findDoctor } from "@/ai/flows/find-doctor-flow";
-import { Textarea } from "../ui/textarea";
-import { Alert, AlertDescription, AlertTitle } from "../ui/alert";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 
 type ConsultationMode = "video" | "chat" | "in-person";
 
