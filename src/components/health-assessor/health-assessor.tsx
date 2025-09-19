@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -52,7 +53,7 @@ export default function HealthAssessor() {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      symptoms: "I am experiencing severe, crushing chest pain that is radiating to my left arm. I am also short of breath and feel nauseous.",
+      symptoms: "",
     },
   });
 
@@ -118,7 +119,7 @@ export default function HealthAssessor() {
                     <FormLabel>Describe your symptoms</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="e.g., I have a sharp pain in my chest, and I feel dizzy..."
+                        placeholder="I am experiencing severe, crushing chest pain that is radiating to my left arm. I am also short of breath and feel nauseous."
                         {...field}
                         rows={6}
                       />
