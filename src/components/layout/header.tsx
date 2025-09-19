@@ -32,7 +32,7 @@ const adminNavItems = [
     { title: 'Dashboard', href: '/admin-dashboard' },
     { title: 'Users', href: '/admin-dashboard/users' },
     { title: 'Analytics', href: '/admin-dashboard/analytics' },
-    { 'title': 'Moderation', 'href': '/admin-dashboard/moderation' },
+    { title: 'Moderation', href: '/admin-dashboard/moderation' },
     { title: 'Settings', href: '/admin-dashboard/settings' },
     { title: 'Test Suite', href: '/admin-dashboard/test-suite' },
 ];
