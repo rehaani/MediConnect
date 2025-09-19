@@ -1,10 +1,12 @@
+
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, ScreenShare } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, ScreenShare, Undo2 } from "lucide-react";
 import { Button } from "../ui/button";
 
 export default function VideoCallUI() {
@@ -13,8 +15,11 @@ export default function VideoCallUI() {
   const [hasCameraPermission, setHasCameraPermission] = useState<boolean | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [isCallActive, setIsCallActive] = useState(true);
 
   useEffect(() => {
+    if (!isCallActive) return;
+
     const getCameraPermission = async () => {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -43,7 +48,7 @@ export default function VideoCallUI() {
             stream.getTracks().forEach(track => track.stop());
         }
     }
-  }, [toast]);
+  }, [toast, isCallActive]);
 
   const toggleMute = () => {
     if (videoRef.current?.srcObject) {
@@ -65,6 +70,37 @@ export default function VideoCallUI() {
     }
   }
 
+  const handleEndCall = () => {
+    toast({title: "Call ended."})
+    setIsCallActive(false);
+
+    if (videoRef.current && videoRef.current.srcObject) {
+        const stream = videoRef.current.srcObject as MediaStream;
+        stream.getTracks().forEach(track => track.stop());
+        videoRef.current.srcObject = null;
+    }
+  }
+
+  if (!isCallActive) {
+    return (
+       <Card>
+            <CardHeader>
+                <CardTitle className="font-headline">Video Consultation</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center justify-center text-center space-y-4 min-h-[400px]">
+                <PhoneOff className="h-16 w-16 text-destructive" />
+                <h2 className="text-2xl font-bold">Call Ended</h2>
+                <p className="text-muted-foreground">The video consultation has ended.</p>
+                <Button asChild>
+                    <Link href="/provider-dashboard">
+                        <Undo2 className="mr-2"/>
+                        Return to Dashboard
+                    </Link>
+                </Button>
+            </CardContent>
+       </Card>
+    )
+  }
 
   return (
     <Card>
@@ -105,7 +141,7 @@ export default function VideoCallUI() {
             <Button onClick={() => {toast({title: "Screen Sharing not implemented."})}} variant="secondary" size="icon" disabled aria-label="Share screen">
                 <ScreenShare />
             </Button>
-             <Button onClick={() => {toast({title: "Call ended."})}} variant="destructive" size="icon" aria-label="End call">
+             <Button onClick={handleEndCall} variant="destructive" size="icon" aria-label="End call">
                 <PhoneOff />
             </Button>
         </div>
