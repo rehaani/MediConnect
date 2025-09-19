@@ -7,7 +7,7 @@ export type User = {
   email: string;
   role: UserRole;
   avatar: string;
-  language: 'en' | 'hi';
+  language: 'en' | 'hi' | 'de';
   theme: Theme;
 };
 
@@ -52,5 +52,14 @@ export async function updateUserTheme(userId: string, theme: Theme): Promise<voi
     // In a real app using Firestore:
     // const userRef = doc(db, 'users', userId);
     // await setDoc(userRef, { theme }, { merge: true });
+    return Promise.resolve();
+}
+
+// In a real app, this would write to Firestore.
+export async function updateUserLanguage(userId: string, language: 'en' | 'hi' | 'de'): Promise<void> {
+    console.log(`Simulating update language for user ${userId} to ${language}`);
+    // In a real app using Firestore:
+    // const userRef = doc(db, 'users', userId);
+    // await setDoc(userRef, { language }, { merge: true });
     return Promise.resolve();
 }

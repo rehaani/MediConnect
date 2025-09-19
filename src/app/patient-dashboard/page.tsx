@@ -19,16 +19,21 @@ export default function PatientDashboardPage() {
   const patientFeatures = FEATURES.filter(feature => feature.roles.includes('patient'));
 
   useEffect(() => {
-    async function fetchUser() {
-      const userData = await getCurrentUser('patient');
-      setUser(userData);
-      // Set initial language based on user preference from "database"
-      if (userData.language && i18n.language !== userData.language) {
-        i18n.changeLanguage(userData.language);
+    async function fetchUserAndSetLanguage() {
+      try {
+        const userData = await getCurrentUser('patient');
+        setUser(userData);
+        // Set initial language based on user preference from "database"
+        if (userData && userData.language && i18n.language !== userData.language) {
+          i18n.changeLanguage(userData.language);
+        }
+      } catch (error) {
+        console.error("Failed to fetch user data", error);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
-    fetchUser();
+    fetchUserAndSetLanguage();
   }, [i18n]);
 
 

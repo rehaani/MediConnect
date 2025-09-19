@@ -12,14 +12,21 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { getCurrentUser, updateUserLanguage } from "@/lib/auth";
 
 export function LanguageToggle() {
   const { i18n } = useTranslation();
 
-  const changeLanguage = (lang: 'en' | 'hi' | 'de') => {
+  const changeLanguage = async (lang: 'en' | 'hi' | 'de') => {
     i18n.changeLanguage(lang);
-    // In a real app, you would also save this preference to a user's profile in your database.
-    console.log(`Simulating saving language preference: ${lang}`);
+    try {
+      // In a real app, you'd get the current user's ID
+      const user = await getCurrentUser();
+      await updateUserLanguage(user.email, lang);
+    } catch (error) {
+      // User may not be logged in, which is fine. The language will be saved in localStorage.
+      console.log("User not logged in, language preference not saved to profile.");
+    }
   };
 
   return (
