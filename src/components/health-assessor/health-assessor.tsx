@@ -5,12 +5,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { useState, useTransition, useRef } from "react";
-import { Bot, Loader2, Mic, Send, Siren } from "lucide-react";
+import { Bot, Loader2, Mic, Send, Siren, Paperclip, Image as ImageIcon } from "lucide-react";
 import {
   HealthAssessmentInput,
   HealthAssessmentOutput,
   healthAssessment,
 } from "@/ai/flows/health-assessment-flow";
+import { processSymptomImage, ProcessSymptomImageOutput } from "@/ai/flows/process-symptom-image-flow";
+
 
 import { Button } from "@/components/ui/button";
 import {
@@ -33,59 +35,99 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
+import { Input } from "../ui/input";
+import Image from "next/image";
 
 const formSchema = z.object({
   symptoms: z
     .string()
     .min(10, { message: "Please describe your symptoms in more detail." }),
+  photo: z.any().optional(),
 });
 
 export default function HealthAssessor() {
   const [isPending, startTransition] = useTransition();
-  const [isVoicePending, startVoiceTransition] = useTransition();
-  const [result, setResult] = useState<HealthAssessmentOutput | null>(
-    null
-  );
+  const [textResult, setTextResult] = useState<HealthAssessmentOutput | null>(null);
+  const [imageResult, setImageResult] = useState<ProcessSymptomImageOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
+
   const { toast } = useToast();
-  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       symptoms: "",
+      photo: null,
     },
   });
+  
+  const handlePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+        toast({ variant: "destructive", title: "File too large", description: "Please upload an image smaller than 5MB." });
+        return;
+      }
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setPreview(reader.result as string);
+        form.setValue("photo", reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
 
   function onSubmit(values: z.infer<typeof formSchema>) {
-    setResult(null);
+    setTextResult(null);
+    setImageResult(null);
     setError(null);
+
     startTransition(async () => {
       try {
-        // In a real app, you would get user context (age, gender, history) from their profile.
-        const input: HealthAssessmentInput = {
+        const assessmentPromises = [];
+        
+        // Text-based assessment
+        const textInput: HealthAssessmentInput = {
             symptoms: values.symptoms,
-            userContext: {
-                age: 58,
-                gender: "male",
-                medicalHistory: "History of high blood pressure."
+            userContext: { // In a real app, this would come from the user's profile
+                age: 34,
+                gender: "female",
+                medicalHistory: "None"
             }
         };
-        const response = await healthAssessment(input);
-        setResult(response);
+        assessmentPromises.push(healthAssessment(textInput));
+
+        // Image-based assessment (if a photo is provided)
+        if (values.photo) {
+            assessmentPromises.push(processSymptomImage({
+                photoDataUri: values.photo,
+                description: values.symptoms,
+            }));
+        }
+
+        const results = await Promise.all(assessmentPromises);
+        
+        const healthAssessmentResult = results.find(r => 'riskLevel' in r) as HealthAssessmentOutput | undefined;
+        const imageAnalysisResult = results.find(r => 'analysis' in r) as ProcessSymptomImageOutput | undefined;
+
+        if (healthAssessmentResult) setTextResult(healthAssessmentResult);
+        if (imageAnalysisResult) setImageResult(imageAnalysisResult);
+
       } catch (e) {
         console.error(e);
-        setError("An error occurred while processing your request. Please try again.");
+        setError("An error occurred while processing your request. The AI model may be busy or the input could not be processed. Please try again.");
       }
     });
   }
 
   const handleVoiceInput = () => {
     toast({
-        title: "Voice Input",
-        description: "This feature is not yet implemented. It will allow you to describe your symptoms using your voice.",
+        title: "Voice Input Coming Soon",
+        description: "This feature will allow you to describe your symptoms using your voice.",
     });
-    };
+  };
 
   const getRiskVariant = (riskLevel?: HealthAssessmentOutput['riskLevel']) => {
     switch (riskLevel) {
@@ -107,7 +149,7 @@ export default function HealthAssessor() {
             <CardHeader>
               <CardTitle className="font-headline">Symptom Details</CardTitle>
               <CardDescription>
-                Describe your symptoms clearly and in detail for the AI to analyze.
+                Describe your symptoms clearly for the AI to analyze. You can also upload a photo (e.g., of a rash).
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -116,10 +158,10 @@ export default function HealthAssessor() {
                 name="symptoms"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Describe your symptoms</FormLabel>
+                    <FormLabel>1. Describe your symptoms</FormLabel>
                     <FormControl>
                       <Textarea
-                        placeholder="I am experiencing severe, crushing chest pain that is radiating to my left arm. I am also short of breath and feel nauseous."
+                        placeholder="e.g., I have a high fever, a persistent cough, and I'm feeling very tired. I also noticed a circular red rash on my arm."
                         {...field}
                         rows={6}
                       />
@@ -131,10 +173,45 @@ export default function HealthAssessor() {
                   </FormItem>
                 )}
               />
-              <Button variant="outline" className="w-full" type="button" onClick={handleVoiceInput} disabled={isVoicePending}>
-                {isVoicePending ? <Loader2 className="animate-spin" /> : <Mic />}
-                Use Voice Assistance
-              </Button>
+
+              <div className="space-y-2">
+                <Button variant="outline" className="w-full" type="button" onClick={handleVoiceInput}>
+                  <Mic className="mr-2" /> Use Voice Assistance
+                </Button>
+                 <p className="text-xs text-center text-muted-foreground">Supports English, Hindi, and Punjabi (coming soon).</p>
+              </div>
+
+               <FormField
+                control={form.control}
+                name="photo"
+                render={({ field }) => (
+                    <FormItem>
+                        <FormLabel>2. (Optional) Upload a Photo</FormLabel>
+                        <FormControl>
+                            <Input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handlePhotoChange} 
+                            />
+                        </FormControl>
+                        <FormDescription>
+                            If you have a visible symptom like a rash or swelling, a photo can help the AI analysis.
+                        </FormDescription>
+                        <FormMessage />
+                    </FormItem>
+                )}
+                />
+
+                {preview && (
+                <div className="space-y-2">
+                    <Label>Photo Preview</Label>
+                    <div className="relative w-40 h-40 border rounded-md">
+                    <Image src={preview} alt="Symptom photo preview" fill objectFit="cover" className="rounded-md" />
+                    </div>
+                </div>
+                )}
+
+
             </CardContent>
             <CardFooter>
               <Button type="submit" disabled={isPending} className="w-full md:w-auto">
@@ -150,61 +227,95 @@ export default function HealthAssessor() {
         </Form>
       </Card>
 
-      {result && result.riskLevel === 'Emergency' && (
-        <Alert variant="destructive">
-          <Siren className="h-4 w-4" />
-          <AlertTitle className="text-xl font-bold">MEDICAL EMERGENCY</AlertTitle>
-          <AlertDescription>
-             <p className="text-base mb-4">{result.recommendation}</p>
-             <div className="space-y-2 text-base">
-                <p><strong className="font-semibold">Assessment:</strong> {result.assessment}</p>
-             </div>
-             <p className="text-xs text-muted-foreground pt-4">
-                Disclaimer: This AI assessment is for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.
-            </p>
-          </AlertDescription>
-        </Alert>
+      {isPending && (
+         <div className="flex flex-col items-center justify-center p-8 text-center bg-muted/50 rounded-lg">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-4" />
+            <p className="text-muted-foreground">AI is analyzing your symptoms...</p>
+            <p className="text-xs text-muted-foreground mt-2">(This may take a moment)</p>
+        </div>
       )}
 
-      {result && result.riskLevel !== 'Emergency' && (
-        <Alert variant={getRiskVariant(result.riskLevel)}>
-          <Bot className="h-4 w-4" />
-          <AlertTitle className="font-headline">AI Health Assessment</AlertTitle>
-          <AlertDescription>
-            <p className="font-bold text-lg mb-2">
-                Risk Level: {result.riskLevel}
-            </p>
-            <div className="space-y-3">
-                <div>
-                    <strong className="font-semibold">Assessment:</strong>
-                    <p>{result.assessment}</p>
+      <div className="space-y-4">
+        {textResult && textResult.riskLevel === 'Emergency' && (
+            <Alert variant="destructive">
+            <Siren className="h-4 w-4" />
+            <AlertTitle className="text-xl font-bold">MEDICAL EMERGENCY</AlertTitle>
+            <AlertDescription>
+                <p className="text-base mb-4">{textResult.recommendation}</p>
+                <div className="space-y-2 text-base">
+                    <p><strong className="font-semibold">Assessment:</strong> {textResult.assessment}</p>
                 </div>
-                <div>
-                    <strong className="font-semibold">Recommendation:</strong>
-                    <p>{result.recommendation}</p>
-                </div>
-                {result.specialistReferral && (
-                    <div>
-                        <strong className="font-semibold">Suggested Specialist:</strong>
-                        <p>{result.specialistReferral}</p>
-                    </div>
-                )}
-                 <p className="text-xs text-muted-foreground pt-2">
-                    Disclaimer: This AI assessment is for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.
+                <p className="text-xs text-destructive pt-4 font-semibold">
+                    Disclaimer: This AI analysis is for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.
                 </p>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
+            </AlertDescription>
+            </Alert>
+        )}
 
-      {error && (
-         <Alert variant="destructive">
+        {textResult && textResult.riskLevel !== 'Emergency' && (
+            <Alert variant={getRiskVariant(textResult.riskLevel)}>
             <Bot className="h-4 w-4" />
-            <AlertTitle className="font-headline">Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      )}
-      <audio ref={audioRef} className="hidden" />
+            <AlertTitle className="font-headline">AI Health Assessment</AlertTitle>
+            <AlertDescription>
+                <p className="font-bold text-lg mb-2">
+                    Risk Level: {textResult.riskLevel}
+                </p>
+                <div className="space-y-3">
+                    <div>
+                        <strong className="font-semibold">Assessment:</strong>
+                        <p>{textResult.assessment}</p>
+                    </div>
+                    <div>
+                        <strong className="font-semibold">Recommendation:</strong>
+                        <p>{textResult.recommendation}</p>
+                    </div>
+                    {textResult.specialistReferral && (
+                        <div>
+                            <strong className="font-semibold">Suggested Specialist:</strong>
+                            <p>{textResult.specialistReferral}</p>
+                        </div>
+                    )}
+                </div>
+            </AlertDescription>
+            </Alert>
+        )}
+
+        {imageResult && (
+            <Alert>
+                <ImageIcon className="h-4 w-4" />
+                <AlertTitle className="font-headline">AI Image Analysis</AlertTitle>
+                <AlertDescription>
+                     <div className="space-y-3">
+                        <div>
+                            <strong className="font-semibold">Analysis:</strong>
+                            <p>{imageResult.analysis}</p>
+                        </div>
+                        <div>
+                            <strong className="font-semibold">Recommendation:</strong>
+                            <p>{imageResult.recommendation}</p>
+                        </div>
+                    </div>
+                </AlertDescription>
+            </Alert>
+        )}
+
+        {(textResult || imageResult) && (
+             <p className="text-xs text-destructive pt-4 font-semibold text-center">
+                Disclaimer: This AI analysis is for informational purposes only and is not a substitute for professional medical advice, diagnosis, or treatment.
+            </p>
+        )}
+
+        {error && (
+            <Alert variant="destructive">
+                <Bot className="h-4 w-4" />
+                <AlertTitle className="font-headline">Error</AlertTitle>
+                <AlertDescription>{error}</AlertDescription>
+            </Alert>
+        )}
+      </div>
+
     </div>
   );
 }
+
+    
