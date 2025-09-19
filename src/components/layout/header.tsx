@@ -31,9 +31,8 @@ const providerNavItems = [
 const adminNavItems = [
     { title: 'Dashboard', href: '/admin-dashboard' },
     { title: 'Users', href: '#' },
-    { title: 'Providers', href: '#' },
     { title: 'Analytics', href: '#' },
-    { 'title': 'Settings', 'href': '#' },
+    { title: 'Settings', href: '#' },
 ];
 
 const navItems: Record<UserRole, { title: string; href: string }[]> = {
