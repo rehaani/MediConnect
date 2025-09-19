@@ -3,7 +3,7 @@
 
 import { useEffect, useRef, useState, useCallback } from "react";
 import { db } from "@/lib/firebase";
-import { ref, onValue, set, onDisconnect, remove, get } from "firebase/database";
+import { ref, onValue, set, onDisconnect, remove, get, update } from "firebase/database";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -43,7 +43,9 @@ export default function WebRTCVideoCall() {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
 
-  const hangUp = useCallback(async () => {
+  const hangUp = useCallback(async (isRemoteHangup = false) => {
+    if (callState === 'ended') return;
+
     if (pc) {
       pc.close();
     }
@@ -53,16 +55,19 @@ export default function WebRTCVideoCall() {
     if (remoteStream) {
       remoteStream.getTracks().forEach(track => track.stop());
     }
-    if (currentRoomId) {
-      const roomRef = ref(db, `calls/${currentRoomId}`);
-      await remove(roomRef);
-    }
     
     setPc(null);
     setLocalStream(null);
     setRemoteStream(null);
     
     setCallState("ended");
+
+    if (currentRoomId && !isRemoteHangup) {
+      const roomRef = ref(db, `calls/${currentRoomId}`);
+      await update(roomRef, { ended: true });
+      // The onDisconnect will handle the final removal
+    }
+    
     const previousRoomId = currentRoomId;
     setCurrentRoomId("");
 
@@ -70,7 +75,7 @@ export default function WebRTCVideoCall() {
         toast({ title: "Call ended." });
     }
 
-  }, [pc, localStream, remoteStream, currentRoomId, toast]);
+  }, [pc, localStream, remoteStream, currentRoomId, toast, callState]);
 
   const setupStreams = useCallback(async () => {
     try {
@@ -109,13 +114,27 @@ export default function WebRTCVideoCall() {
     newPc.oniceconnectionstatechange = () => {
         if (newPc.iceConnectionState === 'disconnected' || newPc.iceConnectionState === 'failed') {
             console.log('Peer disconnected.');
-            hangUp();
+            hangUp(true);
         }
     };
     
     setPc(newPc);
     return newPc;
   }, [hangUp]);
+
+  // Listen for call ended state
+  useEffect(() => {
+    if (!currentRoomId) return;
+
+    const endedRef = ref(db, `calls/${currentRoomId}/ended`);
+    const unsubscribe = onValue(endedRef, (snapshot) => {
+      if (snapshot.val() === true) {
+        hangUp(true); // isRemoteHangup = true
+      }
+    });
+
+    return () => unsubscribe();
+  }, [currentRoomId, hangUp]);
 
   const createRoom = useCallback(async () => {
     setCallState("creating");
@@ -140,7 +159,7 @@ export default function WebRTCVideoCall() {
     const offerDescription = await newPc.createOffer();
     await newPc.setLocalDescription(offerDescription);
     const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
-    await set(roomRef, { offer });
+    await set(roomRef, { offer, ended: false });
 
     setCallState("active");
 
@@ -182,6 +201,7 @@ export default function WebRTCVideoCall() {
     const stream = await setupStreams();
     if (!stream) return;
 
+    onDisconnect(roomRef).remove();
     const newPc = initializePeerConnection(stream);
     setCurrentRoomId(roomId);
     
@@ -280,7 +300,7 @@ export default function WebRTCVideoCall() {
                 <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn off video" : "Turn on video"}>
                     {isVideoEnabled ? <Video /> : <VideoOff />}
                 </Button>
-                <Button onClick={hangUp} variant="destructive" size="lg">
+                <Button onClick={() => hangUp(false)} variant="destructive" size="lg">
                     <PhoneOff className="mr-2" /> End Call
                 </Button>
             </div>
@@ -349,6 +369,8 @@ export default function WebRTCVideoCall() {
     
 
   
+
+    
 
     
 
