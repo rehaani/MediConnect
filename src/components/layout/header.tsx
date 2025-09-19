@@ -22,6 +22,7 @@ const patientNavItems = [
     { title: 'Appointments', href: '/appointments' },
     { title: 'AI Health Assessor', href: '/ai-health-assessor' },
     { title: 'Symptom Tracker', href: '/symptom-tracker' },
+    { title: 'Document Analyzer', href: '/document-analyzer' },
     { title: 'Medications', href: '/medications' },
     { title: 'Profile', href: '/profile' },
     { title: 'Family', href: '/family' },
@@ -31,6 +32,7 @@ const patientNavItems = [
 const providerNavItems = [
     { title: 'Dashboard', href: '/provider-dashboard' },
     { title: 'Appointments', href: '/appointments' },
+    { title: 'Document Analyzer', href: '/document-analyzer' },
     { title: 'Patients', href: '#' },
     { title: 'Schedule', href: '#' },
 ];
