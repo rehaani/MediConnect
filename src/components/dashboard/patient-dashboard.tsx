@@ -4,13 +4,15 @@
 import { useContext, useEffect, useRef, useState } from "react";
 import type { User } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Phone, User as UserIcon, MapPin, Loader2, AlertTriangle, Globe } from "lucide-react";
+import { Phone, User as UserIcon, MapPin, Loader2, AlertTriangle, Globe, Video } from "lucide-react";
 import { Button } from "../ui/button";
 import { MenuContext } from "@/context/menu-provider";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { ToastAction } from "../ui/toast";
+import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
+import { useRouter } from "next/navigation";
 
 
 // Mock data for emergency contacts
@@ -21,13 +23,43 @@ const emergencyContacts = [
 
 const PatientDashboard = ({ user }: { user: User }) => {
   const mapRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
   const [locationStatus, setLocationStatus] = useState<"loading" | "success" | "error">("loading");
   const [locationError, setLocationError] = useState<string | null>(null);
   const { isMobileMenuOpen } = useContext(MenuContext);
   const [countryCode, setCountryCode] = useState<string | null>(null);
   const [isGeocoding, setIsGeocoding] = useState(false);
+  const [showCallInvite, setShowCallInvite] = useState(false);
+  const [incomingCall, setIncomingCall] = useState<{ doctorName: string; roomId: string } | null>(null);
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
+
+  // Simulate receiving a call invite after a delay
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // In a real app, this would be triggered by a Firestore listener
+      const mockCall = { doctorName: "Dr. Evelyn Reed", roomId: "mock-room-123" };
+      setIncomingCall(mockCall);
+      setShowCallInvite(true);
+    }, 5000); // Show invite after 5 seconds
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const handleAcceptCall = () => {
+    if (incomingCall) {
+      router.push(`/video-consultation?roomId=${incomingCall.roomId}`);
+    }
+  };
+
+  const handleDeclineCall = () => {
+    setShowCallInvite(false);
+    setIncomingCall(null);
+    toast({
+        title: "Call Declined",
+        description: `The call from ${incomingCall?.doctorName} was declined.`
+    });
+  };
 
   const mapCountryToLanguage = (code: string | null): {lang: 'en' | 'hi' | 'de', langName: string} => {
     const map: Record<string, {lang: 'en' | 'hi' | 'de', langName: string}> = {
@@ -149,90 +181,114 @@ const PatientDashboard = ({ user }: { user: User }) => {
   }, [toast, i18n, t]);
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="relative z-0 lg:col-span-2">
-            <CardHeader>
-                <CardTitle className="flex items-center gap-2 font-headline">
-                    <MapPin /> {t('Live Location')}
-                </CardTitle>
-                <CardDescription>
-                    {t('Your current location for emergency services and language preferences.')}
-                </CardDescription>
-            </CardHeader>
-            <CardContent>
-                <div 
-                    id="map" 
-                    ref={mapRef} 
-                    className="h-[300px] md:h-[400px] w-full rounded-md bg-muted flex items-center justify-center"
-                >
-                    {locationStatus === 'loading' && (
-                        <div className="text-center text-muted-foreground p-4">
-                            <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
-                            <p>Requesting location permission...</p>
-                        </div>
-                    )}
-                </div>
-                 {(locationStatus === 'error' || (locationStatus === 'loading' && locationError)) && (
-                    <div className="mt-4 p-3 bg-destructive/10 border border-destructive/50 rounded-md text-sm text-destructive flex gap-2">
-                        <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
-                        <p>{locationError}</p>
-                    </div>
-                )}
-            </CardContent>
-             <div className={cn(
-                "absolute inset-0 bg-background/80 transition-opacity duration-300 z-20",
-                isMobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
-             )} />
-        </Card>
-        <div className="space-y-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 font-headline">
-                        <UserIcon /> {t('Emergency Contacts')}
-                    </CardTitle>
-                    <CardDescription>
-                        {t('Your designated contacts for emergency situations.')}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                     {emergencyContacts.map(contact => (
-                        <div key={contact.name} className="flex items-center justify-between p-3 rounded-lg border">
-                            <div>
-                                <p className="font-semibold">{contact.name}</p>
-                                <p className="text-sm text-muted-foreground">{contact.relationship}</p>
-                            </div>
-                            <Button size="icon">
-                                <Phone />
-                                <span className="sr-only">Call {contact.name}</span>
-                            </Button>
-                        </div>
-                     ))}
-                </CardContent>
-            </Card>
-             <Card>
-                <CardHeader>
-                    <CardTitle className="flex items-center gap-2 font-headline">
-                       <Globe /> {t('Region')}
-                    </CardTitle>
-                     <CardDescription>
-                       {t('Your detected region for language and service personalization.')}
-                    </CardDescription>
-                </CardHeader>
-                <CardContent>
-                    {isGeocoding ? (
-                        <div className="flex items-center gap-2 text-muted-foreground">
-                            <Loader2 className="h-4 w-4 animate-spin"/>
-                            <span>Determining country...</span>
-                        </div>
-                    ) : countryCode ? (
-                         <p className="text-lg font-bold">{countryCode} ({mapCountryToLanguage(countryCode).langName})</p>
-                    ) : (
-                        <p className="text-sm text-muted-foreground">Country not detected. Please enable location access.</p>
-                    )}
-                </CardContent>
-            </Card>
-        </div>
-    </div>
+    <>
+      <AlertDialog open={showCallInvite}>
+          <AlertDialogContent>
+              <AlertDialogHeader>
+                  <AlertDialogTitle className="flex items-center gap-2">
+                      <Video className="text-primary animate-pulse" />
+                      Incoming Call
+                  </AlertDialogTitle>
+                  <AlertDialogDescription>
+                      {incomingCall?.doctorName} is calling you for your consultation.
+                  </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                  <Button variant="destructive" onClick={handleDeclineCall}>
+                      Decline
+                  </Button>
+                  <AlertDialogAction onClick={handleAcceptCall}>
+                      Join Call
+                  </AlertDialogAction>
+              </AlertDialogFooter>
+          </AlertDialogContent>
+      </AlertDialog>
+
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          <Card className="relative z-0 lg:col-span-2">
+              <CardHeader>
+                  <CardTitle className="flex items-center gap-2 font-headline">
+                      <MapPin /> {t('Live Location')}
+                  </CardTitle>
+                  <CardDescription>
+                      {t('Your current location for emergency services and language preferences.')}
+                  </CardDescription>
+              </CardHeader>
+              <CardContent>
+                  <div
+                      id="map"
+                      ref={mapRef}
+                      className="h-[300px] md:h-[400px] w-full rounded-md bg-muted flex items-center justify-center"
+                  >
+                      {locationStatus === 'loading' && (
+                          <div className="text-center text-muted-foreground p-4">
+                              <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                              <p>Requesting location permission...</p>
+                          </div>
+                      )}
+                  </div>
+                  {(locationStatus === 'error' || (locationStatus === 'loading' && locationError)) && (
+                      <div className="mt-4 p-3 bg-destructive/10 border border-destructive/50 rounded-md text-sm text-destructive flex gap-2">
+                          <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+                          <p>{locationError}</p>
+                      </div>
+                  )}
+              </CardContent>
+              <div className={cn(
+                  "absolute inset-0 bg-background/80 transition-opacity duration-300 z-20",
+                  isMobileMenuOpen ? "opacity-100" : "opacity-0 pointer-events-none"
+              )} />
+          </Card>
+          <div className="space-y-6">
+              <Card>
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2 font-headline">
+                          <UserIcon /> {t('Emergency Contacts')}
+                      </CardTitle>
+                      <CardDescription>
+                          {t('Your designated contacts for emergency situations.')}
+                      </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                      {emergencyContacts.map(contact => (
+                          <div key={contact.name} className="flex items-center justify-between p-3 rounded-lg border">
+                              <div>
+                                  <p className="font-semibold">{contact.name}</p>
+                                  <p className="text-sm text-muted-foreground">{contact.relationship}</p>
+                              </div>
+                              <Button size="icon">
+                                  <Phone />
+                                  <span className="sr-only">Call {contact.name}</span>
+                              </Button>
+                          </div>
+                      ))}
+                  </CardContent>
+              </Card>
+              <Card>
+                  <CardHeader>
+                      <CardTitle className="flex items-center gap-2 font-headline">
+                        <Globe /> {t('Region')}
+                      </CardTitle>
+                      <CardDescription>
+                        {t('Your detected region for language and service personalization.')}
+                      </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                      {isGeocoding ? (
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                              <Loader2 className="h-4 w-4 animate-spin"/>
+                              <span>Determining country...</span>
+                          </div>
+                      ) : countryCode ? (
+                          <p className="text-lg font-bold">{countryCode} ({mapCountryToLanguage(countryCode).langName})</p>
+                      ) : (
+                          <p className="text-sm text-muted-foreground">Country not detected. Please enable location access.</p>
+                      )}
+                  </CardContent>
+              </Card>
+          </div>
+      </div>
+    </>
   );
 };
 

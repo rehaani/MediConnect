@@ -1,7 +1,9 @@
 
+"use client";
 import WebRTCVideoCall from "@/components/video-consultation/webrtc-video-call";
+import { Suspense } from "react";
 
-export default function VideoConsultationPage() {
+function VideoConsultationContent() {
   return (
     <div className="container mx-auto max-w-5xl p-4 md:p-8">
       <div className="space-y-6">
@@ -15,4 +17,12 @@ export default function VideoConsultationPage() {
       </div>
     </div>
   );
+}
+
+export default function VideoConsultationPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <VideoConsultationContent />
+    </Suspense>
+  )
 }

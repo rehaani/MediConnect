@@ -6,14 +6,11 @@ import { db } from "@/lib/firebase";
 import { ref, onValue, set, onDisconnect, remove, get, update } from "firebase/database";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2 } from "lucide-react";
-import Link from "next/link";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2, User, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-
 
 const servers = {
   iceServers: [
@@ -32,13 +29,13 @@ const servers = {
 export default function WebRTCVideoCall() {
   const { toast } = useToast();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   
-  const [roomId, setRoomId] = useState("");
-  const [currentRoomId, setCurrentRoomId] = useState("");
-  const [callState, setCallState] = useState<"idle" | "creating" | "joining" | "active" | "ended">("idle");
+  const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
+  const [callState, setCallState] = useState<"idle" | "loading" | "active" | "ended">("idle");
 
 
   const [isMuted, setIsMuted] = useState(false);
@@ -49,6 +46,7 @@ export default function WebRTCVideoCall() {
 
   const hangUp = useCallback(async (isRemoteHangup = false) => {
     if (callState === 'ended') return;
+    setCallState("ended");
 
     if (pc) {
       pc.close();
@@ -64,35 +62,122 @@ export default function WebRTCVideoCall() {
     setLocalStream(null);
     setRemoteStream(null);
     
-    setCallState("ended");
-
     if (currentRoomId && !isRemoteHangup) {
       const roomRef = ref(db, `calls/${currentRoomId}`);
-      await update(roomRef, { ended: true });
-      // The onDisconnect will handle the final removal
+      try {
+        await update(roomRef, { ended: true });
+        // The onDisconnect should handle final removal, but we can force it
+        await remove(roomRef);
+      } catch (error) {
+        console.error("Error during hangup:", error);
+      }
     }
     
     const previousRoomId = currentRoomId;
-    setCurrentRoomId("");
+    setCurrentRoomId(null);
 
     if (previousRoomId) {
         toast({ title: "Call ended." });
-        
-        // Role-based redirection logic
-        const user = await getCurrentUser();
+        const user = await getCurrentUser(); // Determine role for redirection
         const role = user.role || 'patient';
-        
-        const rolePaths = {
-            patient: '/patient-dashboard',
-            provider: '/provider-dashboard',
-            admin: '/admin-dashboard',
-        };
-        
-        const path = rolePaths[role] || '/patient-dashboard';
+        const path = role === 'provider' ? '/provider-dashboard' : '/patient-dashboard';
         router.push(path);
     }
 
   }, [pc, localStream, remoteStream, currentRoomId, toast, callState, router]);
+
+  // Main effect to join the call when the component mounts with a roomId
+  useEffect(() => {
+    const roomIdFromParams = searchParams.get("roomId");
+    if (roomIdFromParams && callState === 'idle') {
+      setCurrentRoomId(roomIdFromParams);
+      setCallState("loading");
+      joinRoom(roomIdFromParams);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
+
+
+  const joinRoom = useCallback(async (roomId: string) => {
+    const stream = await setupStreams();
+    if (!stream) {
+      setCallState('ended');
+      return;
+    };
+
+    const newPc = initializePeerConnection(stream);
+    
+    const roomRef = ref(db, `calls/${roomId}`);
+    onDisconnect(roomRef).remove();
+
+    const roomSnapshot = await get(roomRef);
+    if (!roomSnapshot.exists()) {
+        toast({variant: "destructive", title: "Room not found", description: "The call may have been ended by the host."});
+        hangUp(true);
+        return;
+    }
+    
+    const user = await getCurrentUser();
+    
+    // Logic for Doctor (Offeror) vs Patient (Answerer)
+    if (user.role === 'provider') { // Doctor is creating/offering
+        newPc.onicecandidate = event => {
+            if (event.candidate) {
+                const candidateRef = ref(db, `calls/${roomId}/offerCandidates/${Math.random().toString(36).substring(2)}`);
+                set(candidateRef, event.candidate.toJSON());
+            }
+        };
+
+        const offerDescription = await newPc.createOffer();
+        await newPc.setLocalDescription(offerDescription);
+        const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
+        await set(roomRef, { offer, ended: false });
+
+        onValue(ref(db, `calls/${roomId}/answer`), async (snapshot) => {
+            if (snapshot.exists() && !newPc.currentRemoteDescription) {
+                const answerDescription = new RTCSessionDescription(snapshot.val());
+                await newPc.setRemoteDescription(answerDescription);
+            }
+        });
+
+        onValue(ref(db, `calls/${roomId}/answerCandidates`), (snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+                if (childSnapshot.exists()) {
+                    newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val())).catch(e => console.error("Error adding answer candidate", e));
+                    remove(childSnapshot.ref);
+                }
+            });
+        });
+
+    } else { // Patient is joining/answering
+        newPc.onicecandidate = event => {
+            if (event.candidate) {
+                const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${Math.random().toString(36).substring(2)}`);
+                set(candidateRef, event.candidate.toJSON());
+            }
+        };
+        
+        const offer = roomSnapshot.val().offer;
+        await newPc.setRemoteDescription(new RTCSessionDescription(offer));
+        
+        const answerDescription = await newPc.createAnswer();
+        await newPc.setLocalDescription(answerDescription);
+        const answer = { type: answerDescription.type, sdp: answerDescription.sdp };
+        await update(roomRef, { answer });
+
+        onValue(ref(db, `calls/${roomId}/offerCandidates`), (snapshot) => {
+            snapshot.forEach((childSnapshot) => {
+                if(childSnapshot.exists()){
+                    newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val())).catch(e => console.error("Error adding offer candidate", e));
+                    remove(childSnapshot.ref);
+                }
+            });
+        });
+    }
+
+    setCallState("active");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setupStreams = useCallback(async () => {
     try {
@@ -111,7 +196,6 @@ export default function WebRTCVideoCall() {
         title: "Media Access Denied",
         description: "Please enable camera and microphone permissions to start a call.",
       });
-      setCallState("idle");
       return null;
     }
   }, [toast]);
@@ -146,111 +230,13 @@ export default function WebRTCVideoCall() {
     const endedRef = ref(db, `calls/${currentRoomId}/ended`);
     const unsubscribe = onValue(endedRef, (snapshot) => {
       if (snapshot.val() === true) {
-        hangUp(true); // isRemoteHangup = true
+        hangUp(true);
       }
     });
 
     return () => unsubscribe();
   }, [currentRoomId, hangUp]);
 
-  const createRoom = useCallback(async () => {
-    setCallState("creating");
-    const stream = await setupStreams();
-    if (!stream) return;
-
-    const newPc = initializePeerConnection(stream);
-    
-    const newRoomId = Math.random().toString(36).substring(2, 9);
-    const roomRef = ref(db, `calls/${newRoomId}`);
-    onDisconnect(roomRef).remove(); 
-
-    setCurrentRoomId(newRoomId);
-    
-    newPc.onicecandidate = event => {
-        if (event.candidate) {
-            const candidateRef = ref(db, `calls/${newRoomId}/offerCandidates/${Math.random().toString(36).substring(2)}`);
-            set(candidateRef, event.candidate.toJSON());
-        }
-    };
-
-    const offerDescription = await newPc.createOffer();
-    await newPc.setLocalDescription(offerDescription);
-    const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
-    await set(roomRef, { offer, ended: false });
-
-    setCallState("active");
-
-    onValue(ref(db, `calls/${newRoomId}/answer`), async (snapshot) => {
-      if (snapshot.exists() && newPc.currentRemoteDescription) {
-         // ignore stale answers
-      } else if(snapshot.exists()) {
-        const answerDescription = new RTCSessionDescription(snapshot.val());
-        await newPc.setRemoteDescription(answerDescription);
-      }
-    });
-
-    onValue(ref(db, `calls/${newRoomId}/answerCandidates`), (snapshot) => {
-        snapshot.forEach((childSnapshot) => {
-            if (childSnapshot.exists()) {
-                newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val())).catch(e => console.error("Error adding answer candidate", e));
-                remove(childSnapshot.ref);
-            }
-        });
-    });
-
-  }, [setupStreams, initializePeerConnection]);
-
-  const joinRoom = useCallback(async () => {
-    if (!roomId) {
-        toast({variant: "destructive", title: "Room ID required", description: "Please enter a room ID to join."});
-        return;
-    }
-    
-    setCallState("joining");
-    const roomRef = ref(db, `calls/${roomId}`);
-    const roomSnapshot = await get(roomRef);
-    if (!roomSnapshot.exists()) {
-        toast({variant: "destructive", title: "Room not found", description: "The room ID you entered is invalid."});
-        setCallState("idle");
-        return;
-    }
-
-    const stream = await setupStreams();
-    if (!stream) return;
-
-    onDisconnect(roomRef).remove();
-    const newPc = initializePeerConnection(stream);
-    setCurrentRoomId(roomId);
-    
-    newPc.onicecandidate = event => {
-        if (event.candidate) {
-            const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${Math.random().toString(36).substring(2)}`);
-            set(candidateRef, event.candidate.toJSON());
-        }
-    };
-    
-    const offer = roomSnapshot.val().offer;
-    await newPc.setRemoteDescription(new RTCSessionDescription(offer));
-    
-    const answerDescription = await newPc.createAnswer();
-    await newPc.setLocalDescription(answerDescription);
-    const answer = { type: answerDescription.type, sdp: answerDescription.sdp };
-    await set(ref(db, `calls/${roomId}/answer`), answer);
-
-    setCallState("active");
-
-    onValue(ref(db, `calls/${roomId}/offerCandidates`), (snapshot) => {
-        snapshot.forEach((childSnapshot) => {
-            if(childSnapshot.exists()){
-                newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val())).catch(e => console.error("Error adding offer candidate", e));
-                remove(childSnapshot.ref);
-            }
-        });
-    });
-
-  }, [roomId, setupStreams, toast, initializePeerConnection]);
-
-  
   const toggleMute = () => {
     if (localStream) {
         localStream.getAudioTracks().forEach(track => {
@@ -270,25 +256,63 @@ export default function WebRTCVideoCall() {
   }
   
   const copyRoomId = () => {
-    navigator.clipboard.writeText(currentRoomId);
-    toast({title: "Room ID copied to clipboard!"});
+    if (currentRoomId) {
+      navigator.clipboard.writeText(currentRoomId);
+      toast({title: "Room ID copied to clipboard!"});
+    }
   }
 
-  const isLoading = callState === "creating" || callState === "joining";
-
-  if (callState === "active" || callState === "creating" || callState === "joining") {
+  if (callState === "ended") {
     return (
-        <div className="relative h-[calc(100vh-10rem)] w-full bg-muted rounded-lg overflow-hidden flex items-center justify-center">
-            {/* Remote Video */}
-            <video ref={remoteVideoRef} autoPlay playsInline className={cn("h-full w-full object-cover", { 'hidden': !remoteStream })} />
+      <Card className="max-w-md mx-auto text-center">
+          <CardHeader>
+              <CardTitle className="font-headline">Call Ended</CardTitle>
+              <CardDescription>Your video call has finished. Redirecting to your dashboard...</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4 items-center">
+              <Loader2 className="h-8 w-8 animate-spin" />
+          </CardContent>
+      </Card>
+    );
+}
 
-            {/* Waiting for peer */}
-            {!remoteStream && (
-                <div className="text-center text-muted-foreground z-10">
-                    <Loader2 className="mx-auto h-12 w-12 animate-spin mb-4"/>
-                    <p className="text-lg">Waiting for other person to join...</p>
+  if (callState === "idle") {
+    return (
+        <Card className="max-w-md mx-auto text-center">
+            <CardHeader>
+                <CardTitle className="font-headline">Video Consultation</CardTitle>
+                <CardDescription>Calls can only be initiated by a healthcare provider from their dashboard.</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Button onClick={() => router.push('/patient-dashboard')}>Return to Dashboard</Button>
+            </CardContent>
+        </Card>
+    )
+  }
+
+  return (
+      <div className="relative h-[calc(100vh-10rem)] w-full bg-muted rounded-lg overflow-hidden flex items-center justify-center">
+          {/* Remote Video */}
+          <video ref={remoteVideoRef} autoPlay playsInline className={cn("h-full w-full object-cover", { 'hidden': !remoteStream })} />
+
+          {/* Waiting for peer */}
+          {callState === 'loading' || !remoteStream && (
+              <div className="text-center text-muted-foreground z-10 flex flex-col items-center">
+                  <div className="flex items-center gap-4 p-4 bg-background/80 rounded-lg">
+                    <div className="flex flex-col items-center gap-2">
+                        <UserCheck className="h-10 w-10 text-primary"/>
+                        <span className="font-semibold">You</span>
+                    </div>
+                    <Loader2 className="mx-auto h-8 w-8 animate-spin"/>
+                    <div className="flex flex-col items-center gap-2">
+                         <User className="h-10 w-10"/>
+                        <span className="font-semibold">Connecting...</span>
+                    </div>
+                  </div>
+                  <p className="mt-4 text-lg">Waiting for the other person to join...</p>
+                  {currentRoomId && (
                     <div className="mt-4 p-4 bg-background/80 rounded-lg">
-                        <p className="font-semibold">Share this Room ID:</p>
+                        <p className="font-semibold">Share this Room ID if needed:</p>
                         <div className="flex items-center justify-center gap-2 mt-2">
                            <span className="font-mono text-xl">{currentRoomId}</span>
                            <Button variant="ghost" size="icon" onClick={copyRoomId} aria-label="Copy Room ID">
@@ -296,94 +320,33 @@ export default function WebRTCVideoCall() {
                            </Button>
                         </div>
                     </div>
-                </div>
-            )}
-            
-            {/* Local Video (PIP) */}
-             <div className={cn("absolute top-4 right-4 h-48 w-72 rounded-lg overflow-hidden border-2 border-primary z-20 transition-opacity", localStream ? "opacity-100" : "opacity-0")}>
-                 <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
-                 {!isVideoEnabled && (
-                    <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
-                        <VideoOff className="text-white h-12 w-12"/>
-                    </div>
-                )}
-            </div>
+                  )}
+              </div>
+          )}
+          
+          {/* Local Video (PIP) */}
+           <div className={cn("absolute top-4 right-4 h-48 w-72 rounded-lg overflow-hidden border-2 border-primary z-20 transition-opacity", localStream ? "opacity-100" : "opacity-0")}>
+               <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
+               {!isVideoEnabled && (
+                  <div className="absolute inset-0 bg-black/80 flex items-center justify-center">
+                      <VideoOff className="text-white h-12 w-12"/>
+                  </div>
+              )}
+          </div>
 
-            {/* Controls */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex justify-center gap-4 rounded-full bg-background/80 p-3 shadow-lg z-30">
-                <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon" aria-label={isMuted ? "Unmute" : "Mute"}>
-                    {isMuted ? <MicOff /> : <Mic />}
-                </Button>
-                <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn off video" : "Turn on video"}>
-                    {isVideoEnabled ? <Video /> : <VideoOff />}
-                </Button>
-                <Button onClick={() => hangUp(false)} variant="destructive" size="lg">
-                    <PhoneOff className="mr-2" /> End Call
-                </Button>
-            </div>
-        </div>
-    )
-  }
-
-  if(callState === "ended") {
-      return (
-        <Card className="max-w-md mx-auto text-center">
-            <CardHeader>
-                <CardTitle className="font-headline">Call Ended</CardTitle>
-                <CardDescription>Redirecting to your dashboard...</CardDescription>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4 items-center">
-                <Loader2 className="h-8 w-8 animate-spin" />
-            </CardContent>
-        </Card>
-      );
-  }
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="font-headline">Start or Join a Video Call</CardTitle>
-        <CardDescription>Create a private room or join an existing one using a Room ID.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4">
-                <Button onClick={createRoom} className="flex-1" disabled={isLoading}>
-                    {isLoading && callState === "creating" ? <Loader2 className="animate-spin mr-2" /> : null}
-                    Create Room
-                </Button>
-            </div>
-            <div className="flex items-center space-x-2 py-2">
-                <div className="flex-grow border-t border-border"/>
-                <span className="text-muted-foreground text-sm">OR</span>
-                <div className="flex-grow border-t border-border"/>
-            </div>
-            <div className="flex flex-col sm:flex-row gap-4">
-              <Input
-                placeholder="Enter Room ID to join"
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value)}
-                className="flex-1"
-                disabled={isLoading}
-              />
-              <Button onClick={joinRoom} variant="secondary" className="flex-1" disabled={isLoading || !roomId}>
-                {isLoading && callState === "joining" ? <Loader2 className="animate-spin mr-2" /> : null}
-                Join Room
+          {/* Controls */}
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex justify-center gap-4 rounded-full bg-background/80 p-3 shadow-lg z-30">
+              <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon" aria-label={isMuted ? "Unmute" : "Mute"}>
+                  {isMuted ? <MicOff /> : <Mic />}
               </Button>
-            </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
+              <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn off video" : "Turn on video"}>
+                  {isVideoEnabled ? <Video /> : <VideoOff />}
+              </Button>
+              <Button onClick={() => hangUp(false)} variant="destructive" size="lg" disabled={callState !== 'active'}>
+                  <PhoneOff className="mr-2" /> End Call
+              </Button>
+          </div>
+      </div>
+  )
 }
-    
-
-  
-
-    
-
-    
-
-    
-
     

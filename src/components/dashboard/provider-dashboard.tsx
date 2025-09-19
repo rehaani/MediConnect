@@ -1,18 +1,24 @@
+
+"use client";
+
 import type { User } from "@/lib/auth";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Users, CalendarDays, Bell, CheckCircle, Clock, AlertTriangle, Video, MessageSquare } from "lucide-react";
+import { Users, CalendarDays, Bell, CheckCircle, Clock, AlertTriangle, Video, MessageSquare, Loader2 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { useToast } from "@/hooks/use-toast";
 
 const patients = [
-  { name: 'Ravi Kumar', reason: 'Follow-up', status: 'waiting', type: 'video', time: '10:00 AM', avatar: 'https://picsum.photos/seed/rk/40/40', hint: 'man portrait' },
-  { name: 'Priya Sharma', reason: 'New patient consultation', status: 'waiting', type: 'video', time: '10:15 AM', avatar: 'https://picsum.photos/seed/ps/40/40', hint: 'woman portrait' },
-  { name: 'Amit Singh', reason: 'Medication refill', status: 'in-progress', type: 'chat', time: '10:30 AM', avatar: 'https://picsum.photos/seed/as/40/40', hint: 'man glasses' },
-  { name: 'Sunita Devi', reason: 'Lab results review', status: 'completed', type: 'video', time: '09:45 AM', avatar: 'https://picsum.photos/seed/sd/40/40', hint: 'senior woman' },
-  { name: 'Vikram Rathore', reason: 'Urgent care - High fever', status: 'urgent', type: 'video', time: 'Now', avatar: 'https://picsum.photos/seed/vr/40/40', hint: 'man worried' },
+  { id: 'pat-1', name: 'Ravi Kumar', reason: 'Follow-up', status: 'waiting', type: 'video', time: '10:00 AM', avatar: 'https://picsum.photos/seed/rk/40/40', hint: 'man portrait' },
+  { id: 'pat-2', name: 'Priya Sharma', reason: 'New patient consultation', status: 'waiting', type: 'video', time: '10:15 AM', avatar: 'https://picsum.photos/seed/ps/40/40', hint: 'woman portrait' },
+  { id: 'pat-3', name: 'Amit Singh', reason: 'Medication refill', status: 'in-progress', type: 'chat', time: '10:30 AM', avatar: 'https://picsum.photos/seed/as/40/40', hint: 'man glasses' },
+  { id: 'pat-4', name: 'Sunita Devi', reason: 'Lab results review', status: 'completed', type: 'video', time: '09:45 AM', avatar: 'https://picsum.photos/seed/sd/40/40', hint: 'senior woman' },
+  { id: 'pat-5', name: 'Vikram Rathore', reason: 'Urgent care - High fever', status: 'urgent', type: 'video', time: 'Now', avatar: 'https://picsum.photos/seed/vr/40/40', hint: 'man worried' },
 ];
 
 const statusIcons = {
@@ -32,6 +38,29 @@ const getStatusVariant = (status: string): "default" | "secondary" | "destructiv
 }
 
 const ProviderDashboard = ({ user }: { user: User }) => {
+  const router = useRouter();
+  const { toast } = useToast();
+  const [callingPatientId, setCallingPatientId] = useState<string | null>(null);
+
+  const handleStartCall = (patientId: string, patientName: string) => {
+    // In a real app, this would call a Cloud Function to create a room
+    // and send a notification to the patient.
+    setCallingPatientId(patientId);
+    
+    // Simulate API call to create room
+    setTimeout(() => {
+        const roomId = "mock-room-123"; // The function would return this
+        toast({
+            title: "Call Started",
+            description: `Sending invitation to ${patientName}...`,
+        });
+        
+        // Navigate the doctor to the call room
+        router.push(`/video-consultation?roomId=${roomId}`);
+    }, 1500);
+
+  }
+  
   return (
     <div className="grid gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
@@ -73,11 +102,17 @@ const ProviderDashboard = ({ user }: { user: User }) => {
                                         </Badge>
                                     </TableCell>
                                     <TableCell className="text-right">
-                                        <Button size="sm" asChild>
-                                          <Link href="/video-consultation">
-                                            {patient.type === 'video' ? <Video className="mr-2"/> : <MessageSquare className="mr-2"/>}
+                                        <Button 
+                                            size="sm" 
+                                            onClick={() => handleStartCall(patient.id, patient.name)}
+                                            disabled={callingPatientId !== null || patient.status === 'completed'}
+                                        >
+                                          {callingPatientId === patient.id ? (
+                                             <Loader2 className="mr-2 animate-spin" />
+                                          ) : (
+                                            patient.type === 'video' ? <Video className="mr-2"/> : <MessageSquare className="mr-2"/>
+                                          )}
                                             Start Call
-                                          </Link>
                                         </Button>
                                     </TableCell>
                                 </TableRow>
