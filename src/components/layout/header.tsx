@@ -8,16 +8,9 @@ import { ThemeToggle } from './theme-toggle';
 import { LanguageToggle } from './language-toggle';
 import { UserMenu } from './user-menu';
 
-const patientNavItems = [
-    { title: 'Dashboard', href: '/patient-dashboard' },
-    { title: 'AI Health Assessor', href: '/ai-health-assessor' },
-    { title: 'Appointments', href: '/appointments' },
-    { title: 'Symptom Tracker', href: '/symptom-tracker' },
-    { title: 'Document Analyzer', href: '/document-analyzer' },
-    { title: 'Medications', href: '/medications' },
-    { title: 'Profile', href: '/profile' },
-    { title: 'Family', href: '/family' },
-    { title: 'Video Consultation', href: '/video-consultation'},
+const patientNavItems: { title: string; href: string }[] = [
+    // This list is now empty to remove the top navigation for patients.
+    // The DashboardCards component serves as the primary navigation on the patient dashboard.
 ];
 
 const providerNavItems = [
