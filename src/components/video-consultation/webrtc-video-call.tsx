@@ -7,7 +7,7 @@ import { ref, onValue, set, onDisconnect, remove, get, update } from "firebase/d
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2, User, UserCheck } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2, User, UserCheck, PhoneCall } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getCurrentUser, User as UserType } from "@/lib/auth";
@@ -26,6 +26,11 @@ const servers = {
   iceCandidatePoolSize: 10,
 };
 
+function generateRoomId() {
+    return Math.random().toString(36).substring(2, 9);
+}
+
+
 export default function WebRTCVideoCall() {
   const { toast } = useToast();
   const router = useRouter();
@@ -38,7 +43,7 @@ export default function WebRTCVideoCall() {
   const [isHost, setIsHost] = useState(false);
   
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
-  const [callState, setCallState] = useState<"idle" | "loading" | "active" | "ended">("idle");
+  const [callState, setCallState] = useState<"idle" | "loading" | "active" | "ended" | "creating">("idle");
 
 
   const [isMuted, setIsMuted] = useState(false);
@@ -249,6 +254,20 @@ export default function WebRTCVideoCall() {
     return () => unsubscribe();
   }, [currentRoomId, hangUp]);
 
+    const handleStartCall = () => {
+        setCallState("creating");
+        toast({
+            title: "Finding a consultation room...",
+            description: "Please wait while we connect you.",
+        });
+        
+        // Simulate creating a room and redirecting
+        setTimeout(() => {
+            const newRoomId = generateRoomId();
+            router.push(`/video-consultation?roomId=${newRoomId}`);
+        }, 1500);
+    };
+
   const toggleMute = () => {
     if (localStream) {
         localStream.getAudioTracks().forEach(track => {
@@ -274,6 +293,47 @@ export default function WebRTCVideoCall() {
     }
   }
 
+  if (!user) {
+     return (
+        <Card className="max-w-md mx-auto text-center">
+            <CardHeader>
+                <CardTitle className="font-headline">Video Consultation</CardTitle>
+                <CardDescription>Loading user information...</CardDescription>
+            </CardHeader>
+            <CardContent>
+                <Loader2 className="h-8 w-8 animate-spin" />
+            </CardContent>
+        </Card>
+    )
+  }
+
+  if (callState === 'idle' && !searchParams.get('roomId')) {
+    return (
+        <Card className="max-w-md mx-auto text-center">
+            <CardHeader>
+                <CardTitle className="font-headline">Video Consultation</CardTitle>
+                <CardDescription>
+                    {isHost
+                        ? "Start a new session and share the room ID with your patient."
+                        : "Ready to connect with a healthcare provider face-to-face?"
+                    }
+                </CardDescription>
+            </CardHeader>
+            <CardContent>
+                 <Button onClick={handleStartCall} size="lg" disabled={callState === 'creating'}>
+                    {callState === 'creating' ? (
+                        <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+                    ) : (
+                        <PhoneCall className="mr-2 h-5 w-5" />
+                    )}
+                    {isHost ? "Start New Consultation" : "Connect to a Doctor"}
+                 </Button>
+            </CardContent>
+        </Card>
+    );
+  }
+
+
   if (callState === "ended") {
     return (
       <Card className="max-w-md mx-auto text-center">
@@ -288,7 +348,7 @@ export default function WebRTCVideoCall() {
     );
 }
 
-  if (callState === "idle" || !user) {
+  if (callState === "loading") {
     return (
         <Card className="max-w-md mx-auto text-center">
             <CardHeader>
@@ -308,7 +368,7 @@ export default function WebRTCVideoCall() {
           <video ref={remoteVideoRef} autoPlay playsInline className={cn("h-full w-full object-cover", { 'hidden': !remoteStream })} />
 
           {/* Waiting for peer */}
-          {callState === 'loading' || !remoteStream && (
+          {callState === 'active' && !remoteStream && (
               <div className="text-center text-muted-foreground z-10 flex flex-col items-center">
                   <div className="flex items-center gap-4 p-4 bg-background/80 rounded-lg">
                     <div className="flex flex-col items-center gap-2">
@@ -366,6 +426,8 @@ export default function WebRTCVideoCall() {
       </div>
   )
 }
+    
+
     
 
     
