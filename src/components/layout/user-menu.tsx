@@ -28,13 +28,11 @@ export function UserMenu({ user }: { user: UserType }) {
                 variant="ghost"
                 className="relative h-8 w-8 rounded-full"
               >
-                <Link href="/profile">
                   <Avatar className="h-9 w-9">
                     <AvatarImage src={user.avatar} alt={user.name} data-ai-hint="person portrait"/>
                     <AvatarFallback>{userInitials}</AvatarFallback>
                   </Avatar>
-                  <span className="sr-only">Go to profile</span>
-                </Link>
+                  <span className="sr-only">Open user menu</span>
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56" align="end" forceMount>
