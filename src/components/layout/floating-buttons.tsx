@@ -23,8 +23,7 @@ export default function FloatingButtons() {
     useEffect(() => {
         async function fetchUser() {
             try {
-                // We no longer need to infer the role from the path.
-                // We can just get the current user, and the mock will default correctly.
+                // The mock will default correctly based on how it's called.
                 const userData = await getCurrentUser();
                 setUser(userData);
             } catch (e) {
@@ -38,48 +37,24 @@ export default function FloatingButtons() {
     }, [pathname]);
     
     const handleHomeClick = async () => {
-        const firebaseUser = auth.currentUser;
+        try {
+            // Since we are using a mock auth system, getCurrentUser is the source of truth.
+            // This avoids issues with stale Firebase tokens in a dev environment.
+            const currentUser = await getCurrentUser();
+            const role = currentUser.role || 'patient'; 
 
-        if (firebaseUser) {
-            try {
-                // Force-refresh the token to get the latest custom claims
-                const tokenResult = await firebaseUser.getIdTokenResult(true);
-                const role = tokenResult.claims.role || 'patient'; // Default to 'patient'
+            const rolePaths: Record<UserRole, string> = {
+                patient: '/patient-dashboard',
+                provider: '/provider-dashboard',
+                admin: '/admin-dashboard',
+            };
+            
+            router.push(rolePaths[role] || '/login');
 
-                const rolePaths: Record<string, string> = {
-                    patient: '/patient-dashboard',
-                    provider: '/provider-dashboard',
-                    admin: '/admin-dashboard',
-                };
-                
-                router.push(rolePaths[role as UserRole] || '/login');
-
-            } catch (error) {
-                console.error("Error refreshing token or navigating:", error);
-                // Fallback to mock user data if token refresh fails in dev
-                if (user) {
-                    const rolePaths: Record<UserRole, string> = {
-                        patient: '/patient-dashboard',
-                        provider: '/provider-dashboard',
-                        admin: '/admin-dashboard',
-                    };
-                    router.push(rolePaths[user.role] || '/login');
-                } else {
-                    router.push('/login');
-                }
-            }
-        } else {
-             // Fallback for mock environment or if user is not found
-            if (user) {
-                const rolePaths: Record<UserRole, string> = {
-                    patient: '/patient-dashboard',
-                    provider: '/provider-dashboard',
-                    admin: '/admin-dashboard',
-                };
-                router.push(rolePaths[user.role] || '/login');
-            } else {
-                router.push('/login');
-            }
+        } catch (error) {
+            console.error("Error navigating to dashboard:", error);
+            // Fallback for any unexpected errors
+            router.push('/login');
         }
     };
 
