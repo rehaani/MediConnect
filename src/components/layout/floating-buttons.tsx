@@ -94,7 +94,8 @@ export default function FloatingButtons() {
         }
     };
 
-    const showHomeButton = user && !pathname.includes('dashboard') && pathname !== '/welcome' && pathname !== '/';
+    const authPages = ['/login', '/register', '/forgot-password', '/otp-verify', '/welcome', '/'];
+    const showHomeButton = user && !pathname.includes('dashboard') && !authPages.includes(pathname);
 
     return (
         <>
