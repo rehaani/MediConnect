@@ -8,7 +8,6 @@ import { UserMenu } from "./user-menu";
 import { LanguageToggle } from "./language-toggle";
 import type { User, UserRole } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/auth";
-import { auth } from "@/lib/firebase";
 import { Skeleton } from "../ui/skeleton";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "../ui/button";
@@ -23,11 +22,10 @@ export default function FloatingButtons() {
     useEffect(() => {
         async function fetchUser() {
             try {
-                // The mock will default correctly based on how it's called.
+                // Fetch user on mount to determine button visibility
                 const userData = await getCurrentUser();
                 setUser(userData);
             } catch (e) {
-                // User is not logged in, which is fine.
                 setUser(null);
             } finally {
                 setLoading(false);
@@ -38,8 +36,7 @@ export default function FloatingButtons() {
     
     const handleHomeClick = async () => {
         try {
-            // Since we are using a mock auth system, getCurrentUser is the source of truth.
-            // This avoids issues with stale Firebase tokens in a dev environment.
+            // Always fetch the current user on click to get the correct role
             const currentUser = await getCurrentUser();
             const role = currentUser.role || 'patient'; 
 
@@ -49,11 +46,11 @@ export default function FloatingButtons() {
                 admin: '/admin-dashboard',
             };
             
-            router.push(rolePaths[role] || '/login');
+            router.push(rolePaths[role]);
 
         } catch (error) {
             console.error("Error navigating to dashboard:", error);
-            // Fallback for any unexpected errors
+            // Fallback for any unexpected errors (e.g., user signed out)
             router.push('/login');
         }
     };
