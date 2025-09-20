@@ -119,14 +119,6 @@ export const FEATURES: Feature[] = [
       roles: ['admin'],
     },
     {
-      name: 'Platform Settings',
-      path: '/admin-dashboard/settings',
-      icon: 'Wrench',
-      bgColor: 'bg-purple-500',
-      description: 'Configure global app settings.',
-      roles: ['admin'],
-    },
-    {
       name: 'Test Suite',
       path: '/admin-dashboard/test-suite',
       icon: 'FlaskConical',

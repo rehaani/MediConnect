@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { LifeBuoy, LogOut, Settings, User } from 'lucide-react';
+import { LifeBuoy, LogOut, User } from 'lucide-react';
 import type { User as UserType } from '@/lib/auth';
 
 export function UserMenu({ user }: { user: UserType }) {
@@ -52,10 +52,6 @@ export function UserMenu({ user }: { user: UserType }) {
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
                 <Link href="/support">
