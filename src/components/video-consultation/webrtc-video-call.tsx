@@ -92,7 +92,7 @@ export default function WebRTCVideoCall() {
         const currentUser = user || await getCurrentUser();
         const role = currentUser.role || 'patient';
         const path = role === 'provider' ? '/provider-dashboard' : '/patient-dashboard';
-        router.push(path);
+        setTimeout(() => router.push(path), 2000); // Add a delay to show message
     }
 
   }, [pc, localStream, remoteStream, currentRoomId, toast, callState, router, user]);
@@ -452,9 +452,9 @@ export default function WebRTCVideoCall() {
                         </div>
                     </div>
                   )}
-                  {isHost && !remoteStream && (
-                     <Button onClick={() => hangUp(false)} variant="secondary" className="mt-4">
-                        Cancel Before Answer
+                  {isHost && (
+                     <Button onClick={() => hangUp(false)} variant="destructive" className="mt-4">
+                        Cancel Call
                     </Button>
                   )}
               </div>
@@ -475,18 +475,13 @@ export default function WebRTCVideoCall() {
               <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon" aria-label={isMuted ? "Unmute" : "Mute"}>
                   {isMuted ? <MicOff /> : <Mic />}
               </Button>
-              <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn on video" : "Turn on video"}>
+              <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn off video" : "Turn on video"}>
                   {isVideoEnabled ? <Video /> : <VideoOff />}
               </Button>
-              <Button onClick={() => hangUp(false)} variant="destructive" size="lg" disabled={!isHost && callState !== 'active'}>
+              <Button onClick={() => hangUp(false)} variant="destructive" size="lg">
                   <PhoneOff className="mr-2" /> End Call
               </Button>
           </div>
       </div>
   )
 }
-    
-
-    
-
-    

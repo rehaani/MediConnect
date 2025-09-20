@@ -22,7 +22,19 @@ export default function FloatingButtons() {
     useEffect(() => {
         async function fetchUser() {
             try {
-                const userData = await getCurrentUser();
+                // Determine user based on context, not hardcoding.
+                // In a real app, this would come from a session.
+                // For now, we simulate by checking which dashboard is active if any.
+                let role: UserRole | undefined = undefined;
+                if (pathname.includes('/provider-dashboard')) {
+                    role = 'provider';
+                } else if (pathname.includes('/admin-dashboard')) {
+                    role = 'admin';
+                } else if (pathname.includes('/patient-dashboard') || pathname === '/') {
+                    role = 'patient';
+                }
+
+                const userData = await getCurrentUser(role);
                 setUser(userData);
             } catch (e) {
                 // User is not logged in, which is fine.
@@ -32,7 +44,7 @@ export default function FloatingButtons() {
             }
         }
         fetchUser();
-    }, []);
+    }, [pathname]);
     
     const handleHomeClick = () => {
         if (!user) return;
@@ -45,7 +57,7 @@ export default function FloatingButtons() {
         router.push(path);
     };
 
-    const showHomeButton = user && !pathname.includes('dashboard') && pathname !== '/';
+    const showHomeButton = user && !pathname.includes('dashboard') && pathname !== '/welcome' && pathname !== '/';
 
     return (
         <>
