@@ -10,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2, User, UserCheck } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
+import { getCurrentUser, User as UserType } from "@/lib/auth";
 
 const servers = {
   iceServers: [
@@ -33,6 +33,9 @@ export default function WebRTCVideoCall() {
   const [pc, setPc] = useState<RTCPeerConnection | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
+  
+  const [user, setUser] = useState<UserType | null>(null);
+  const [isHost, setIsHost] = useState(false);
   
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [callState, setCallState] = useState<"idle" | "loading" | "active" | "ended">("idle");
@@ -66,7 +69,6 @@ export default function WebRTCVideoCall() {
       const roomRef = ref(db, `calls/${currentRoomId}`);
       try {
         await update(roomRef, { ended: true });
-        // The onDisconnect should handle final removal, but we can force it
         await remove(roomRef);
       } catch (error) {
         console.error("Error during hangup:", error);
@@ -77,17 +79,28 @@ export default function WebRTCVideoCall() {
     setCurrentRoomId(null);
 
     if (previousRoomId) {
-        toast({ title: "Call ended." });
-        const user = await getCurrentUser(); // Determine role for redirection
-        const role = user.role || 'patient';
+        toast({ title: isRemoteHangup ? "The other party has ended the call." : "Call ended." });
+        const currentUser = user || await getCurrentUser();
+        const role = currentUser.role || 'patient';
         const path = role === 'provider' ? '/provider-dashboard' : '/patient-dashboard';
         router.push(path);
     }
 
-  }, [pc, localStream, remoteStream, currentRoomId, toast, callState, router]);
+  }, [pc, localStream, remoteStream, currentRoomId, toast, callState, router, user]);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+        const userData = await getCurrentUser();
+        setUser(userData);
+        setIsHost(userData.role === 'provider');
+    };
+    fetchUser();
+  }, []);
 
   // Main effect to join the call when the component mounts with a roomId
   useEffect(() => {
+    if (!user) return; // Wait until user is fetched
+
     const roomIdFromParams = searchParams.get("roomId");
     if (roomIdFromParams && callState === 'idle') {
       setCurrentRoomId(roomIdFromParams);
@@ -95,7 +108,7 @@ export default function WebRTCVideoCall() {
       joinRoom(roomIdFromParams);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams]);
+  }, [searchParams, user]);
 
 
   const joinRoom = useCallback(async (roomId: string) => {
@@ -111,16 +124,14 @@ export default function WebRTCVideoCall() {
     onDisconnect(roomRef).remove();
 
     const roomSnapshot = await get(roomRef);
-    if (!roomSnapshot.exists()) {
+    
+    if (!isHost && !roomSnapshot.exists()) {
         toast({variant: "destructive", title: "Room not found", description: "The call may have been ended by the host."});
         hangUp(true);
         return;
     }
     
-    const user = await getCurrentUser();
-    
-    // Logic for Doctor (Offeror) vs Patient (Answerer)
-    if (user.role === 'provider') { // Doctor is creating/offering
+    if (isHost) {
         newPc.onicecandidate = event => {
             if (event.candidate) {
                 const candidateRef = ref(db, `calls/${roomId}/offerCandidates/${Math.random().toString(36).substring(2)}`);
@@ -149,7 +160,7 @@ export default function WebRTCVideoCall() {
             });
         });
 
-    } else { // Patient is joining/answering
+    } else {
         newPc.onicecandidate = event => {
             if (event.candidate) {
                 const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${Math.random().toString(36).substring(2)}`);
@@ -177,7 +188,7 @@ export default function WebRTCVideoCall() {
 
     setCallState("active");
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [isHost]);
 
   const setupStreams = useCallback(async () => {
     try {
@@ -213,8 +224,8 @@ export default function WebRTCVideoCall() {
     };
 
     newPc.oniceconnectionstatechange = () => {
-        if (newPc.iceConnectionState === 'disconnected' || newPc.iceConnectionState === 'failed') {
-            console.log('Peer disconnected.');
+        if (newPc.iceConnectionState === 'disconnected' || newPc.iceConnectionState === 'failed' || newPc.iceConnectionState === 'closed') {
+            console.log(`Peer disconnected. State: ${newPc.iceConnectionState}`);
             hangUp(true);
         }
     };
@@ -227,9 +238,10 @@ export default function WebRTCVideoCall() {
   useEffect(() => {
     if (!currentRoomId) return;
 
-    const endedRef = ref(db, `calls/${currentRoomId}/ended`);
-    const unsubscribe = onValue(endedRef, (snapshot) => {
-      if (snapshot.val() === true) {
+    const roomRef = ref(db, `calls/${currentRoomId}`);
+    const unsubscribe = onValue(roomRef, (snapshot) => {
+      // If room data is removed, the call has ended
+      if (!snapshot.exists()) {
         hangUp(true);
       }
     });
@@ -276,15 +288,15 @@ export default function WebRTCVideoCall() {
     );
 }
 
-  if (callState === "idle") {
+  if (callState === "idle" || !user) {
     return (
         <Card className="max-w-md mx-auto text-center">
             <CardHeader>
                 <CardTitle className="font-headline">Video Consultation</CardTitle>
-                <CardDescription>Calls can only be initiated by a healthcare provider from their dashboard.</CardDescription>
+                <CardDescription>Preparing your secure connection...</CardDescription>
             </CardHeader>
             <CardContent>
-                <Button onClick={() => router.push('/patient-dashboard')}>Return to Dashboard</Button>
+                <Loader2 className="h-8 w-8 animate-spin" />
             </CardContent>
         </Card>
     )
@@ -310,9 +322,9 @@ export default function WebRTCVideoCall() {
                     </div>
                   </div>
                   <p className="mt-4 text-lg">Waiting for the other person to join...</p>
-                  {currentRoomId && (
+                  {isHost && currentRoomId && (
                     <div className="mt-4 p-4 bg-background/80 rounded-lg">
-                        <p className="font-semibold">Share this Room ID if needed:</p>
+                        <p className="font-semibold">Share this Room ID with the patient:</p>
                         <div className="flex items-center justify-center gap-2 mt-2">
                            <span className="font-mono text-xl">{currentRoomId}</span>
                            <Button variant="ghost" size="icon" onClick={copyRoomId} aria-label="Copy Room ID">
@@ -320,6 +332,11 @@ export default function WebRTCVideoCall() {
                            </Button>
                         </div>
                     </div>
+                  )}
+                  {isHost && !remoteStream && (
+                     <Button onClick={() => hangUp(false)} variant="secondary" className="mt-4">
+                        Cancel Before Answer
+                    </Button>
                   )}
               </div>
           )}
@@ -342,11 +359,13 @@ export default function WebRTCVideoCall() {
               <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn off video" : "Turn on video"}>
                   {isVideoEnabled ? <Video /> : <VideoOff />}
               </Button>
-              <Button onClick={() => hangUp(false)} variant="destructive" size="lg" disabled={callState !== 'active'}>
+              <Button onClick={() => hangUp(false)} variant="destructive" size="lg" disabled={!isHost && callState !== 'active'}>
                   <PhoneOff className="mr-2" /> End Call
               </Button>
           </div>
       </div>
   )
 }
+    
+
     
