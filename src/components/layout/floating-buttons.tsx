@@ -8,6 +8,7 @@ import { UserMenu } from "./user-menu";
 import { LanguageToggle } from "./language-toggle";
 import type { User, UserRole } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/auth";
+import { getAuth } from "firebase/auth";
 import { Skeleton } from "../ui/skeleton";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "../ui/button";
@@ -46,15 +47,51 @@ export default function FloatingButtons() {
         fetchUser();
     }, [pathname]);
     
-    const handleHomeClick = () => {
-        if (!user) return;
-        const rolePaths: Record<UserRole, string> = {
-            patient: '/patient-dashboard',
-            provider: '/provider-dashboard',
-            admin: '/admin-dashboard',
-        };
-        const path = rolePaths[user.role] || '/';
-        router.push(path);
+    const handleHomeClick = async () => {
+        const auth = getAuth();
+        const firebaseUser = auth.currentUser;
+
+        if (firebaseUser) {
+            try {
+                // Force-refresh the token to get the latest custom claims
+                const tokenResult = await firebaseUser.getIdTokenResult(true);
+                const role = tokenResult.claims.role || 'patient'; // Default to 'patient'
+
+                const rolePaths: Record<UserRole, string> = {
+                    patient: '/patient-dashboard',
+                    provider: '/provider-dashboard',
+                    admin: '/admin-dashboard',
+                };
+                
+                router.push(rolePaths[role as UserRole] || '/');
+
+            } catch (error) {
+                console.error("Error refreshing token or navigating:", error);
+                // Fallback to mock user data if token refresh fails in dev
+                if (user) {
+                    const rolePaths: Record<UserRole, string> = {
+                        patient: '/patient-dashboard',
+                        provider: '/provider-dashboard',
+                        admin: '/admin-dashboard',
+                    };
+                    router.push(rolePaths[user.role] || '/');
+                } else {
+                    router.push('/login');
+                }
+            }
+        } else {
+             // Fallback for mock environment or if user is not found
+            if (user) {
+                const rolePaths: Record<UserRole, string> = {
+                    patient: '/patient-dashboard',
+                    provider: '/provider-dashboard',
+                    admin: '/admin-dashboard',
+                };
+                router.push(rolePaths[user.role] || '/');
+            } else {
+                router.push('/login');
+            }
+        }
     };
 
     const showHomeButton = user && !pathname.includes('dashboard') && pathname !== '/welcome' && pathname !== '/';
