@@ -23,9 +23,9 @@ const patients = [
 
 const statusIcons = {
     waiting: <Clock className="h-4 w-4 text-blue-500" />,
-    'in-progress': <Video className="h-4 w-4 text-green-500 animate-pulse" />,
+    'in-progress': <Video className="h-4 w-4 text-green-500" />,
     completed: <CheckCircle className="h-4 w-4 text-gray-500" />,
-    urgent: <AlertTriangle className="h-4 w-4 text-red-500 animate-bounce" />,
+    urgent: <AlertTriangle className="h-4 w-4 text-red-500" />,
 };
 
 const getStatusVariant = (status: string): "default" | "secondary" | "destructive" | "outline" => {
@@ -152,7 +152,7 @@ const ProviderDashboard = ({ user }: { user: User }) => {
                 </CardContent>
             </Card>
              <Card>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardHeader className="flex flex-row items-center justify-between spacey-0 pb-2">
                 <CardTitle className="text-sm font-medium">
                     Active Patients
                 </CardTitle>
@@ -171,3 +171,5 @@ const ProviderDashboard = ({ user }: { user: User }) => {
 };
 
 export default ProviderDashboard;
+
+    
