@@ -7,7 +7,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useRouter } from 'next/navigation';
-import { Bot, Calendar, FileText, HeartPulse, Pill, User as UserIcon, Shield, Users, MonitorPlay, UserCog, BarChart, Wrench, FlaskConical } from "lucide-react";
+import { Bot, Calendar, FileText, HeartPulse, Pill, User as UserIcon, Shield, Users, MonitorPlay, UserCog, BarChart, Wrench, FlaskConical, LifeBuoy } from "lucide-react";
 
 const icons: { [key: string]: React.ReactNode } = {
   Bot: <Bot />,
@@ -23,6 +23,7 @@ const icons: { [key: string]: React.ReactNode } = {
   BarChart: <BarChart />,
   Wrench: <Wrench />,
   FlaskConical: <FlaskConical />,
+  LifeBuoy: <LifeBuoy />,
 };
 
 

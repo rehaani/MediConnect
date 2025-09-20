@@ -110,6 +110,14 @@ export const FEATURES: Feature[] = [
       description: 'Review and moderate user content.',
       roles: ['admin'],
     },
+     {
+      name: 'Support Tickets',
+      path: '/admin-dashboard/support',
+      icon: 'LifeBuoy',
+      bgColor: 'bg-orange-500',
+      description: 'Manage and resolve user issues.',
+      roles: ['admin'],
+    },
     {
       name: 'Platform Settings',
       path: '/admin-dashboard/settings',
