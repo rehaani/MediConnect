@@ -16,20 +16,23 @@
 MediConnect is an AI-powered telemedicine platform designed to bridge the healthcare gap in rural and underserved communities. Our mission is to provide accessible, intelligent, and reliable health services by leveraging modern web and AI technologies.
 
 ### 2. Features Overview
-- **Authentication**: Secure, multi-role user registration and login (Patient, Provider, Admin) with OTP and biometric options.
-- **Role-Based Dashboards**: Personalized dashboard views for each user role, providing access to relevant features.
-- **AI Symptom Analyzer**: A Genkit-powered tool for preliminary health assessment based on user-described symptoms.
-- **Appointment Scheduler**: An intelligent system for finding and booking appointments with healthcare providers.
-- **Video Consultation**: Secure, real-time video calls between patients and providers using WebRTC.
-- **Medication Management**: A digital cabinet for users to track their medications, dosages, and schedules.
-- **Emergency Response**: Tools for location tracking and quick access to emergency contacts in critical situations.
-- **Family Management**: Allows patients to grant designated family members access to their health information.
-- **Community Chat**: A secure messaging platform for community support, powered by Rocket.Chat.
-- **Predictive Analytics**: Visualizes health trends and platform usage data using Grafana/Superset.
-- **Translation**: Multi-language support throughout the application, managed by i18next.
-- **Mapping**: Integrates Leaflet for live location tracking and finding nearby services.
-- **Support Ticketing**: A system for users to submit and track support requests.
-- **Admin Suite**: A comprehensive set of tools for user management, content moderation, analytics, and system testing.
+This section provides a high-level overview of each feature. For detailed documentation, please refer to the individual README files in the `docs` directory.
+
+- **[Authentication](./authentication/README.md)**: Secure, multi-role user registration and login (Patient, Provider, Admin) with OTP and biometric options.
+- **[Role-Based Dashboards](./admin/README.md)**: Personalized dashboard views for each user role, providing access to relevant features.
+- **[AI Symptom Analyzer](./ai-analyzer/README.md)**: A Genkit-powered tool for preliminary health assessment based on user-described symptoms.
+- **[Appointment Scheduler](./scheduler/README.md)**: An intelligent system for finding and booking appointments with healthcare providers.
+- **[Video Consultation](./webrtc/README.md)**: Secure, real-time video calls between patients and providers using WebRTC.
+- **[Medication Management](./medication/README.md)**: A digital cabinet for users to track their medications, dosages, and schedules.
+- **[Emergency Response](./emergency/README.md)**: Tools for location tracking and quick access to emergency contacts in critical situations.
+- **[Family Management](./family/README.md)**: Allows patients to grant designated family members access to their health information.
+- **[Community Chat](./chat/README.md)**: A secure messaging platform for community support, powered by Rocket.Chat.
+- **[Predictive Analytics](./analytics/README.md)**: Visualizes health trends and platform usage data using Grafana/Superset.
+- **[Translation](./translation/README.md)**: Multi-language support throughout the application, managed by i18next.
+- **[Mapping](./leaflet/README.md)**: Integrates Leaflet for live location tracking and finding nearby services.
+- **[Support Ticketing](./support/README.md)**: A system for users to submit and track support requests.
+- **[Admin Suite](./admin/README.md)**: A comprehensive set of tools for user management, content moderation, analytics, and system testing.
+
 
 ### 3. Technology Stack
 - **WebRTC**: For peer-to-peer, real-time video and audio communication directly in the browser.
