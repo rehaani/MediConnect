@@ -8,7 +8,7 @@ import { UserMenu } from "./user-menu";
 import { LanguageToggle } from "./language-toggle";
 import type { User, UserRole } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/auth";
-import { getAuth } from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { Skeleton } from "../ui/skeleton";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "../ui/button";
@@ -38,7 +38,6 @@ export default function FloatingButtons() {
     }, [pathname]);
     
     const handleHomeClick = async () => {
-        const auth = getAuth();
         const firebaseUser = auth.currentUser;
 
         if (firebaseUser) {
