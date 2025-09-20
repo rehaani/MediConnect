@@ -2,17 +2,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { ThemeToggle } from "./theme-toggle";
 import { UserMenu } from "./user-menu";
 import { LanguageToggle } from "./language-toggle";
-import type { User } from "@/lib/auth";
+import type { User, UserRole } from "@/lib/auth";
 import { getCurrentUser } from "@/lib/auth";
 import { Skeleton } from "../ui/skeleton";
 import { AnimatePresence, motion } from "framer-motion";
+import { Button } from "../ui/button";
+import { Home } from "lucide-react";
 
 export default function FloatingButtons() {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const pathname = usePathname();
+    const router = useRouter();
 
     useEffect(() => {
         async function fetchUser() {
@@ -28,6 +33,19 @@ export default function FloatingButtons() {
         }
         fetchUser();
     }, []);
+    
+    const handleHomeClick = () => {
+        if (!user) return;
+        const rolePaths: Record<UserRole, string> = {
+            patient: '/patient-dashboard',
+            provider: '/provider-dashboard',
+            admin: '/admin-dashboard',
+        };
+        const path = rolePaths[user.role] || '/';
+        router.push(path);
+    };
+
+    const showHomeButton = user && !pathname.includes('dashboard') && pathname !== '/';
 
     return (
         <>
@@ -53,6 +71,28 @@ export default function FloatingButtons() {
                     ) : null}
                 </AnimatePresence>
             </motion.div>
+
+            {/* Bottom Left Container */}
+            <AnimatePresence>
+            {showHomeButton && (
+                 <motion.div 
+                    className="fixed bottom-4 left-4 z-50"
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: 20 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    <Button
+                        isIconOnly
+                        size="icon"
+                        aria-label="Return to Dashboard"
+                        onClick={handleHomeClick}
+                    >
+                        <Home />
+                    </Button>
+                </motion.div>
+            )}
+            </AnimatePresence>
 
             {/* Bottom Right Container */}
             <motion.div 
