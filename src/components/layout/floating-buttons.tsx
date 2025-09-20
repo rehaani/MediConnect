@@ -23,19 +23,9 @@ export default function FloatingButtons() {
     useEffect(() => {
         async function fetchUser() {
             try {
-                // Determine user based on context, not hardcoding.
-                // In a real app, this would come from a session.
-                // For now, we simulate by checking which dashboard is active if any.
-                let role: UserRole | undefined = undefined;
-                if (pathname.includes('/provider-dashboard')) {
-                    role = 'provider';
-                } else if (pathname.includes('/admin-dashboard')) {
-                    role = 'admin';
-                } else if (pathname.includes('/patient-dashboard') || pathname === '/') {
-                    role = 'patient';
-                }
-
-                const userData = await getCurrentUser(role);
+                // We no longer need to infer the role from the path.
+                // We can just get the current user, and the mock will default correctly.
+                const userData = await getCurrentUser();
                 setUser(userData);
             } catch (e) {
                 // User is not logged in, which is fine.
