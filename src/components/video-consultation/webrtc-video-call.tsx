@@ -7,10 +7,13 @@ import { ref, onValue, set, onDisconnect, remove, get, update } from "firebase/d
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2, User, UserCheck, PhoneCall } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2, User, UserCheck, PhoneCall, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getCurrentUser, User as UserType } from "@/lib/auth";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
 const servers = {
   iceServers: [
@@ -45,9 +48,10 @@ export default function WebRTCVideoCall() {
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
   const [callState, setCallState] = useState<"idle" | "loading" | "active" | "ended" | "creating">("idle");
 
-
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  
+  const [joinRoomId, setJoinRoomId] = useState("");
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -267,6 +271,18 @@ export default function WebRTCVideoCall() {
             router.push(`/video-consultation?roomId=${newRoomId}`);
         }, 1500);
     };
+    
+    const handleJoinRoom = () => {
+        if (joinRoomId) {
+            router.push(`/video-consultation?roomId=${joinRoomId}`);
+        } else {
+            toast({
+                variant: 'destructive',
+                title: "Room ID Required",
+                description: "Please enter a valid room ID to join."
+            })
+        }
+    }
 
   const toggleMute = () => {
     if (localStream) {
@@ -309,7 +325,7 @@ export default function WebRTCVideoCall() {
 
   if (callState === 'idle' && !searchParams.get('roomId')) {
     return (
-        <Card className="max-w-md mx-auto text-center">
+        <Card className="max-w-lg mx-auto text-center">
             <CardHeader>
                 <CardTitle className="font-headline">Video Consultation</CardTitle>
                 <CardDescription>
@@ -319,7 +335,7 @@ export default function WebRTCVideoCall() {
                     }
                 </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="flex flex-col gap-4">
                  <Button onClick={handleStartCall} size="lg" disabled={callState === 'creating'}>
                     {callState === 'creating' ? (
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
@@ -328,6 +344,49 @@ export default function WebRTCVideoCall() {
                     )}
                     {isHost ? "Start New Consultation" : "Connect to a Doctor"}
                  </Button>
+
+                 {!isHost && (
+                    <>
+                        <div className="flex items-center gap-4">
+                            <hr className="flex-grow border-t" />
+                            <span className="text-muted-foreground text-sm">OR</span>
+                            <hr className="flex-grow border-t" />
+                        </div>
+                         <Dialog>
+                            <DialogTrigger asChild>
+                                <Button variant="outline">Have a Room ID? Join here</Button>
+                            </DialogTrigger>
+                             <DialogContent className="sm:max-w-[425px]">
+                                <DialogHeader>
+                                    <DialogTitle>Join Consultation</DialogTitle>
+                                </DialogHeader>
+                                <div className="grid gap-4 py-4">
+                                    <div className="grid grid-cols-4 items-center gap-4">
+                                        <Label htmlFor="room-id" className="text-right">
+                                            Room ID
+                                        </Label>
+                                        <Input
+                                            id="room-id"
+                                            value={joinRoomId}
+                                            onChange={(e) => setJoinRoomId(e.target.value)}
+                                            className="col-span-3"
+                                            placeholder="Enter the ID from your provider"
+                                        />
+                                    </div>
+                                </div>
+                                <DialogFooter>
+                                    <DialogClose asChild>
+                                        <Button variant="outline">Cancel</Button>
+                                    </DialogClose>
+                                    <Button onClick={handleJoinRoom} disabled={!joinRoomId}>
+                                        <LogIn className="mr-2" />
+                                        Join
+                                    </Button>
+                                </DialogFooter>
+                             </DialogContent>
+                         </Dialog>
+                    </>
+                 )}
             </CardContent>
         </Card>
     );
@@ -416,7 +475,7 @@ export default function WebRTCVideoCall() {
               <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon" aria-label={isMuted ? "Unmute" : "Mute"}>
                   {isMuted ? <MicOff /> : <Mic />}
               </Button>
-              <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn off video" : "Turn on video"}>
+              <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn on video" : "Turn on video"}>
                   {isVideoEnabled ? <Video /> : <VideoOff />}
               </Button>
               <Button onClick={() => hangUp(false)} variant="destructive" size="lg" disabled={!isHost && callState !== 'active'}>
