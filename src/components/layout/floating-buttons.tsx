@@ -47,13 +47,13 @@ export default function FloatingButtons() {
                 const tokenResult = await firebaseUser.getIdTokenResult(true);
                 const role = tokenResult.claims.role || 'patient'; // Default to 'patient'
 
-                const rolePaths: Record<UserRole, string> = {
+                const rolePaths: Record<string, string> = {
                     patient: '/patient-dashboard',
                     provider: '/provider-dashboard',
                     admin: '/admin-dashboard',
                 };
                 
-                router.push(rolePaths[role as UserRole] || '/');
+                router.push(rolePaths[role as UserRole] || '/login');
 
             } catch (error) {
                 console.error("Error refreshing token or navigating:", error);
@@ -64,7 +64,7 @@ export default function FloatingButtons() {
                         provider: '/provider-dashboard',
                         admin: '/admin-dashboard',
                     };
-                    router.push(rolePaths[user.role] || '/');
+                    router.push(rolePaths[user.role] || '/login');
                 } else {
                     router.push('/login');
                 }
@@ -77,7 +77,7 @@ export default function FloatingButtons() {
                     provider: '/provider-dashboard',
                     admin: '/admin-dashboard',
                 };
-                router.push(rolePaths[user.role] || '/');
+                router.push(rolePaths[user.role] || '/login');
             } else {
                 router.push('/login');
             }
@@ -85,7 +85,11 @@ export default function FloatingButtons() {
     };
 
     const authPages = ['/login', '/register', '/forgot-password', '/otp-verify', '/welcome', '/'];
-    const showHomeButton = user && !pathname.includes('dashboard') && !authPages.includes(pathname);
+    const dashboardPages = ['/patient-dashboard', '/provider-dashboard', '/admin-dashboard'];
+    
+    // Hide the button on auth pages, dashboard pages, or if the user is not logged in.
+    const showHomeButton = user && !authPages.includes(pathname) && !dashboardPages.includes(pathname);
+
 
     return (
         <>
