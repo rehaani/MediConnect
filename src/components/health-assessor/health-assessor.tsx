@@ -39,25 +39,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "..
 import { Checkbox } from "../ui/checkbox";
 import { Slider } from "../ui/slider";
 import { Progress } from "../ui/progress";
-
-const symptomsLibrary = [
-  {
-    category: "General",
-    symptoms: ["Fever", "Fatigue", "Chills", "Night sweats", "Weight loss"],
-  },
-  {
-    category: "Head & Neck",
-    symptoms: ["Headache", "Dizziness", "Sore throat", "Runny nose", "Vision problems"],
-  },
-  {
-    category: "Chest",
-    symptoms: ["Cough", "Shortness of breath", "Chest pain", "Palpitations"],
-  },
-  {
-    category: "Stomach",
-    symptoms: ["Nausea", "Vomiting", "Diarrhea", "Constipation", "Abdominal pain"],
-  },
-];
+import { symptomsLibrary } from "@/lib/symptoms";
 
 const formSchema = z.object({
   age: z.coerce.number().min(1, { message: "Age is required." }).max(120),
