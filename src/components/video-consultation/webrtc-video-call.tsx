@@ -43,10 +43,9 @@ export default function WebRTCVideoCall() {
   const [remoteStream, setRemoteStream] = useState<MediaStream | null>(null);
   
   const [user, setUser] = useState<UserType | null>(null);
-  const [isHost, setIsHost] = useState(false);
   
   const [currentRoomId, setCurrentRoomId] = useState<string | null>(null);
-  const [callState, setCallState] = useState<"idle" | "loading" | "active" | "ended" | "creating">("idle");
+  const [callState, setCallState] = useState<"idle" | "loading" | "creating" | "waiting" | "active" | "ended">("idle");
 
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
@@ -55,6 +54,8 @@ export default function WebRTCVideoCall() {
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+
+  const isHost = user?.role === 'provider';
 
   const hangUp = useCallback(async (isRemoteHangup = false) => {
     if (callState === 'ended') return;
@@ -77,7 +78,6 @@ export default function WebRTCVideoCall() {
     if (currentRoomId && !isRemoteHangup) {
       const roomRef = ref(db, `calls/${currentRoomId}`);
       try {
-        await update(roomRef, { ended: true });
         await remove(roomRef);
       } catch (error) {
         console.error("Error during hangup:", error);
@@ -101,113 +101,17 @@ export default function WebRTCVideoCall() {
     const fetchUser = async () => {
         const userData = await getCurrentUser();
         setUser(userData);
-        setIsHost(userData.role === 'provider');
     };
     fetchUser();
   }, []);
 
-  // Main effect to join the call when the component mounts with a roomId
-  useEffect(() => {
-    if (!user) return; // Wait until user is fetched
-
-    const roomIdFromParams = searchParams.get("roomId");
-    if (roomIdFromParams && callState === 'idle') {
-      setCurrentRoomId(roomIdFromParams);
-      setCallState("loading");
-      joinRoom(roomIdFromParams);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [searchParams, user]);
-
-
-  const joinRoom = useCallback(async (roomId: string) => {
-    const stream = await setupStreams();
-    if (!stream) {
-      setCallState('ended');
-      return;
-    };
-
-    const newPc = initializePeerConnection(stream);
-    
-    const roomRef = ref(db, `calls/${roomId}`);
-    onDisconnect(roomRef).remove();
-
-    const roomSnapshot = await get(roomRef);
-    
-    if (!isHost && !roomSnapshot.exists()) {
-        toast({variant: "destructive", title: "Room not found", description: "The call may have been ended by the host."});
-        hangUp(true);
-        return;
-    }
-    
-    if (isHost) {
-        newPc.onicecandidate = event => {
-            if (event.candidate) {
-                const candidateRef = ref(db, `calls/${roomId}/offerCandidates/${Math.random().toString(36).substring(2)}`);
-                set(candidateRef, event.candidate.toJSON());
-            }
-        };
-
-        const offerDescription = await newPc.createOffer();
-        await newPc.setLocalDescription(offerDescription);
-        const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
-        await set(roomRef, { offer, ended: false });
-
-        onValue(ref(db, `calls/${roomId}/answer`), async (snapshot) => {
-            if (snapshot.exists() && !newPc.currentRemoteDescription) {
-                const answerDescription = new RTCSessionDescription(snapshot.val());
-                await newPc.setRemoteDescription(answerDescription);
-            }
-        });
-
-        onValue(ref(db, `calls/${roomId}/answerCandidates`), (snapshot) => {
-            snapshot.forEach((childSnapshot) => {
-                if (childSnapshot.exists()) {
-                    newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val())).catch(e => console.error("Error adding answer candidate", e));
-                    remove(childSnapshot.ref);
-                }
-            });
-        });
-
-    } else {
-        newPc.onicecandidate = event => {
-            if (event.candidate) {
-                const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${Math.random().toString(36).substring(2)}`);
-                set(candidateRef, event.candidate.toJSON());
-            }
-        };
-        
-        const offer = roomSnapshot.val().offer;
-        await newPc.setRemoteDescription(new RTCSessionDescription(offer));
-        
-        const answerDescription = await newPc.createAnswer();
-        await newPc.setLocalDescription(answerDescription);
-        const answer = { type: answerDescription.type, sdp: answerDescription.sdp };
-        await update(roomRef, { answer });
-
-        onValue(ref(db, `calls/${roomId}/offerCandidates`), (snapshot) => {
-            snapshot.forEach((childSnapshot) => {
-                if(childSnapshot.exists()){
-                    newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val())).catch(e => console.error("Error adding offer candidate", e));
-                    remove(childSnapshot.ref);
-                }
-            });
-        });
-    }
-
-    setCallState("active");
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost]);
-
-  const setupStreams = useCallback(async () => {
+  const startLocalStream = useCallback(async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
       if (localVideoRef.current) {
         localVideoRef.current.srcObject = stream;
       }
       setLocalStream(stream);
-      setIsVideoEnabled(true);
-      setIsMuted(false);
       return stream;
     } catch (error) {
       console.error("Error accessing media devices.", error);
@@ -220,69 +124,165 @@ export default function WebRTCVideoCall() {
     }
   }, [toast]);
 
-  const initializePeerConnection = useCallback((stream: MediaStream) => {
-    const newPc = new RTCPeerConnection(servers);
+  const handleCreateRoom = async () => {
+    setCallState("creating");
+    const newRoomId = generateRoomId();
+    setCurrentRoomId(newRoomId);
     
+    const stream = await startLocalStream();
+    if (!stream) {
+      setCallState('idle');
+      return;
+    }
+
+    const newPc = new RTCPeerConnection(servers);
+    setPc(newPc);
     stream.getTracks().forEach(track => newPc.addTrack(track, stream));
 
-    newPc.ontrack = (event) => {
-        setRemoteStream(event.streams[0]);
-        if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = event.streams[0];
+    const roomRef = ref(db, `calls/${newRoomId}`);
+    const offerCandidatesRef = ref(db, `calls/${newRoomId}/offerCandidates`);
+    const answerCandidatesRef = ref(db, `calls/${newRoomId}/answerCandidates`);
+    const answerRef = ref(db, `calls/${newRoomId}/answer`);
+
+    onDisconnect(roomRef).remove();
+    
+    newPc.onicecandidate = event => {
+        if (event.candidate) {
+            const candidateRef = ref(db, `calls/${newRoomId}/offerCandidates/${generateRoomId()}`);
+            set(candidateRef, event.candidate.toJSON());
         }
+    };
+
+    const offerDescription = await newPc.createOffer();
+    await newPc.setLocalDescription(offerDescription);
+    const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
+    await set(roomRef, { offer, createdAt: Date.now() });
+
+    setCallState("waiting");
+
+    onValue(answerRef, async (snapshot) => {
+        if (snapshot.exists()) {
+            if (!newPc.currentRemoteDescription) {
+              const answerDescription = new RTCSessionDescription(snapshot.val());
+              await newPc.setRemoteDescription(answerDescription);
+              setCallState("active");
+            }
+        }
+    });
+
+    onValue(answerCandidatesRef, snapshot => {
+        snapshot.forEach(childSnapshot => {
+            if (childSnapshot.exists()) {
+                const candidate = new RTCIceCandidate(childSnapshot.val());
+                newPc.addIceCandidate(candidate).catch(e => console.error("Error adding answer candidate", e));
+                remove(childSnapshot.ref);
+            }
+        });
+    });
+
+    newPc.ontrack = (event) => {
+      setRemoteStream(event.streams[0]);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
     };
 
     newPc.oniceconnectionstatechange = () => {
         if (newPc.iceConnectionState === 'disconnected' || newPc.iceConnectionState === 'failed' || newPc.iceConnectionState === 'closed') {
-            console.log(`Peer disconnected. State: ${newPc.iceConnectionState}`);
             hangUp(true);
         }
     };
+  };
+
+  const handleJoinRoom = async (roomId: string) => {
+    setCallState("loading");
+    setCurrentRoomId(roomId);
     
+    const roomRef = ref(db, `calls/${roomId}`);
+    const roomSnapshot = await get(roomRef);
+
+    if (!roomSnapshot.exists()) {
+      toast({ variant: "destructive", title: "Room not found", description: "The call may have ended or the ID is incorrect." });
+      setCallState('idle');
+      return;
+    }
+
+    const stream = await startLocalStream();
+    if (!stream) {
+      setCallState('idle');
+      return;
+    }
+    
+    const newPc = new RTCPeerConnection(servers);
     setPc(newPc);
-    return newPc;
-  }, [hangUp]);
+    stream.getTracks().forEach(track => newPc.addTrack(track, stream));
 
-  // Listen for call ended state
-  useEffect(() => {
-    if (!currentRoomId) return;
+    const offerCandidatesRef = ref(db, `calls/${roomId}/offerCandidates`);
+    const answerRef = ref(db, `calls/${roomId}/answer`);
 
-    const roomRef = ref(db, `calls/${currentRoomId}`);
-    const unsubscribe = onValue(roomRef, (snapshot) => {
-      // If room data is removed, the call has ended
-      if (!snapshot.exists()) {
-        hangUp(true);
-      }
+    newPc.onicecandidate = event => {
+        if (event.candidate) {
+            const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${generateRoomId()}`);
+            set(candidateRef, event.candidate.toJSON());
+        }
+    };
+
+    const offer = roomSnapshot.val().offer;
+    await newPc.setRemoteDescription(new RTCSessionDescription(offer));
+
+    const answerDescription = await newPc.createAnswer();
+    await newPc.setLocalDescription(answerDescription);
+    const answer = { sdp: answerDescription.sdp, type: answerDescription.type };
+    await update(roomRef, { answer });
+
+    setCallState("active");
+    
+    onValue(offerCandidatesRef, snapshot => {
+        snapshot.forEach(childSnapshot => {
+            if (childSnapshot.exists()) {
+                const candidate = new RTCIceCandidate(childSnapshot.val());
+                newPc.addIceCandidate(candidate).catch(e => console.error("Error adding offer candidate", e));
+                remove(childSnapshot.ref);
+            }
+        });
     });
 
-    return () => unsubscribe();
-  }, [currentRoomId, hangUp]);
-
-    const handleStartCall = () => {
-        setCallState("creating");
-        toast({
-            title: "Finding a consultation room...",
-            description: "Please wait while we connect you.",
-        });
-        
-        // Simulate creating a room and redirecting
-        setTimeout(() => {
-            const newRoomId = generateRoomId();
-            router.push(`/video-consultation?roomId=${newRoomId}`);
-        }, 1500);
+     newPc.ontrack = (event) => {
+      setRemoteStream(event.streams[0]);
+      if (remoteVideoRef.current) {
+        remoteVideoRef.current.srcObject = event.streams[0];
+      }
     };
-    
-    const handleJoinRoom = () => {
-        if (joinRoomId) {
-            router.push(`/video-consultation?roomId=${joinRoomId}`);
-        } else {
-            toast({
-                variant: 'destructive',
-                title: "Room ID Required",
-                description: "Please enter a valid room ID to join."
-            })
+
+    newPc.oniceconnectionstatechange = () => {
+        if (newPc.iceConnectionState === 'disconnected' || newPc.iceConnectionState === 'failed' || newPc.iceConnectionState === 'closed') {
+            hangUp(true);
         }
+    };
+  };
+
+  useEffect(() => {
+    if (user && callState === 'idle') {
+      const roomIdFromParams = searchParams.get("roomId");
+      if (roomIdFromParams) {
+          if (isHost) {
+              handleCreateRoom(); // A provider rejoining is treated as creating
+          } else {
+              handleJoinRoom(roomIdFromParams);
+          }
+      }
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user, callState, searchParams]);
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      hangUp(false);
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hangUp]);
+
 
   const toggleMute = () => {
     if (localStream) {
@@ -309,6 +309,12 @@ export default function WebRTCVideoCall() {
     }
   }
 
+  const handleManualJoin = () => {
+    if(joinRoomId) handleJoinRoom(joinRoomId);
+  }
+
+  // --- RENDER LOGIC ---
+
   if (!user) {
      return (
         <Card className="max-w-md mx-auto text-center">
@@ -323,7 +329,7 @@ export default function WebRTCVideoCall() {
     )
   }
 
-  if (callState === 'idle' && !searchParams.get('roomId')) {
+  if (callState === 'idle') {
     return (
         <Card className="max-w-lg mx-auto text-center">
             <CardHeader>
@@ -336,7 +342,7 @@ export default function WebRTCVideoCall() {
                 </CardDescription>
             </CardHeader>
             <CardContent className="flex flex-col gap-4">
-                 <Button onClick={handleStartCall} size="lg" disabled={callState === 'creating'}>
+                 <Button onClick={handleCreateRoom} size="lg" disabled={callState === 'creating'}>
                     {callState === 'creating' ? (
                         <Loader2 className="mr-2 h-5 w-5 animate-spin" />
                     ) : (
@@ -378,10 +384,12 @@ export default function WebRTCVideoCall() {
                                     <DialogClose asChild>
                                         <Button variant="outline">Cancel</Button>
                                     </DialogClose>
-                                    <Button onClick={handleJoinRoom} disabled={!joinRoomId}>
-                                        <LogIn className="mr-2" />
-                                        Join
-                                    </Button>
+                                    <DialogClose asChild>
+                                      <Button onClick={handleManualJoin} disabled={!joinRoomId}>
+                                          <LogIn className="mr-2" />
+                                          Join
+                                      </Button>
+                                    </DialogClose>
                                 </DialogFooter>
                              </DialogContent>
                          </Dialog>
@@ -391,7 +399,6 @@ export default function WebRTCVideoCall() {
         </Card>
     );
   }
-
 
   if (callState === "ended") {
     return (
@@ -405,9 +412,9 @@ export default function WebRTCVideoCall() {
           </CardContent>
       </Card>
     );
-}
+  }
 
-  if (callState === "loading") {
+  if (["loading", "creating"].includes(callState)) {
     return (
         <Card className="max-w-md mx-auto text-center">
             <CardHeader>
@@ -427,7 +434,7 @@ export default function WebRTCVideoCall() {
           <video ref={remoteVideoRef} autoPlay playsInline className={cn("h-full w-full object-cover", { 'hidden': !remoteStream })} />
 
           {/* Waiting for peer */}
-          {callState === 'active' && !remoteStream && (
+          {callState === 'waiting' || (callState === 'active' && !remoteStream) ? (
               <div className="text-center text-muted-foreground z-10 flex flex-col items-center">
                   <div className="flex items-center gap-4 p-4 bg-background/80 rounded-lg">
                     <div className="flex flex-col items-center gap-2">
@@ -458,7 +465,7 @@ export default function WebRTCVideoCall() {
                     </Button>
                   )}
               </div>
-          )}
+          ) : null}
           
           {/* Local Video (PIP) */}
            <div className={cn("absolute top-4 right-4 h-48 w-72 rounded-lg overflow-hidden border-2 border-primary z-20 transition-opacity", localStream ? "opacity-100" : "opacity-0")}>
@@ -471,17 +478,19 @@ export default function WebRTCVideoCall() {
           </div>
 
           {/* Controls */}
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex justify-center gap-4 rounded-full bg-background/80 p-3 shadow-lg z-30">
-              <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon" aria-label={isMuted ? "Unmute" : "Mute"}>
-                  {isMuted ? <MicOff /> : <Mic />}
-              </Button>
-              <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn off video" : "Turn on video"}>
-                  {isVideoEnabled ? <Video /> : <VideoOff />}
-              </Button>
-              <Button onClick={() => hangUp(false)} variant="destructive" size="lg">
-                  <PhoneOff className="mr-2" /> End Call
-              </Button>
-          </div>
+          {callState === 'active' && (
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex justify-center gap-4 rounded-full bg-background/80 p-3 shadow-lg z-30">
+                <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon" aria-label={isMuted ? "Unmute" : "Mute"}>
+                    {isMuted ? <MicOff /> : <Mic />}
+                </Button>
+                <Button onClick={toggleVideo} variant={!isVideoEnabled ? "destructive" : "secondary"} size="icon" aria-label={isVideoEnabled ? "Turn off video" : "Turn on video"}>
+                    {isVideoEnabled ? <Video /> : <VideoOff />}
+                </Button>
+                <Button onClick={() => hangUp(false)} variant="destructive" size="lg">
+                    <PhoneOff className="mr-2" /> End Call
+                </Button>
+            </div>
+          )}
       </div>
   )
 }
