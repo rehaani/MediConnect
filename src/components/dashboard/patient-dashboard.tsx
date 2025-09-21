@@ -22,7 +22,8 @@ const emergencyContacts = [
 ];
 
 const PatientDashboard = ({ user }: { user: User }) => {
-  const mapRef = useRef<HTMLDivElement>(null);
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null); // To hold the Leaflet map instance
   const router = useRouter();
   const [locationStatus, setLocationStatus] = useState<"loading" | "success" | "error">("loading");
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -52,13 +53,17 @@ const PatientDashboard = ({ user }: { user: User }) => {
 
   useEffect(() => {
     // Dynamically check if window is defined (for SSR)
-    if (typeof window === 'undefined' || !mapRef.current) return;
+    if (typeof window === 'undefined' || !mapContainerRef.current) return;
     
     // @ts-ignore - Leaflet is loaded from CDN
     if (!window.L) {
         console.error("Leaflet is not loaded");
         setLocationStatus("error");
         setLocationError("Map service is currently unavailable. Please try again later.");
+        return;
+    }
+     // If map is already initialized, don't re-initialize
+    if (mapInstanceRef.current) {
         return;
     }
 
@@ -71,9 +76,11 @@ const PatientDashboard = ({ user }: { user: User }) => {
     // @ts-ignore
     const L = window.L;
 
-    const map = L.map(mapRef.current, {
+    const map = L.map(mapContainerRef.current, {
         scrollWheelZoom: false, // More user-friendly for embedded maps
     });
+    mapInstanceRef.current = map;
+
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
       attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -145,8 +152,10 @@ const PatientDashboard = ({ user }: { user: User }) => {
     
     // Cleanup function
     return () => {
-        map.stopLocate();
-        map.remove();
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.remove();
+        mapInstanceRef.current = null;
+      }
     };
 
   }, [toast, i18n, t]);
@@ -166,7 +175,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
               <CardContent>
                   <div
                       id="map"
-                      ref={mapRef}
+                      ref={mapContainerRef}
                       className="h-[300px] md:h-[400px] w-full rounded-md bg-muted flex items-center justify-center"
                   >
                       {locationStatus === 'loading' && (
