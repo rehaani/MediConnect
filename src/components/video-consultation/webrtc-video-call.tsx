@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
@@ -42,7 +43,6 @@ export default function WebRTCVideoCall() {
   const [callStatus, setCallStatus] = useState<"idle" | "creating" | "waiting" | "active" | "ended">("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
-  const [hasCameraPermission, setHasCameraPermission] = useState(true); // Assume true initially
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -50,6 +50,10 @@ export default function WebRTCVideoCall() {
   const isHost = user?.role === 'provider';
 
   const hangUp = useCallback(async () => {
+    if (callStatus === 'ended') return;
+
+    setCallStatus("ended");
+    
     if (pc) {
       pc.close();
       setPc(null);
@@ -59,25 +63,22 @@ export default function WebRTCVideoCall() {
       setLocalStream(null);
     }
     
-    if (roomId && callStatus !== 'ended') {
+    if (roomId) {
       const roomRef = ref(db, `calls/${roomId}`);
       try {
         await remove(roomRef);
       } catch (error) {
-        console.error("Error during hangup:", error);
+        console.error("Error during hangup cleanup:", error);
       }
     }
     
-    if (callStatus !== 'ended') {
-        setCallStatus("ended");
-        toast({ title: "Call ended." });
-        
-        setTimeout(() => {
-          const role = user?.role || 'patient';
-          const path = role === 'provider' ? '/provider-dashboard' : '/patient-dashboard';
-          router.push(path);
-        }, 2000);
-    }
+    toast({ title: "Call ended." });
+    
+    setTimeout(() => {
+      const role = user?.role || 'patient';
+      const path = role === 'provider' ? '/provider-dashboard' : '/patient-dashboard';
+      router.push(path);
+    }, 2000);
   }, [pc, localStream, roomId, toast, callStatus, router, user?.role]);
   
   useEffect(() => {
@@ -96,14 +97,12 @@ export default function WebRTCVideoCall() {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
         setLocalStream(stream);
-        setHasCameraPermission(true);
 
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
       } catch (error) {
         console.error('Error accessing camera:', error);
-        setHasCameraPermission(false);
         toast({
           variant: 'destructive',
           title: 'Camera Access Denied',
@@ -244,19 +243,21 @@ export default function WebRTCVideoCall() {
 
   const toggleMute = () => {
     if (localStream) {
-        localStream.getAudioTracks().forEach(track => {
-            track.enabled = !track.enabled;
-            setIsMuted(!track.enabled);
-        });
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) {
+            audioTrack.enabled = !audioTrack.enabled;
+            setIsMuted(!audioTrack.enabled);
+        }
     }
   };
 
   const toggleVideo = () => {
      if (localStream) {
-        localStream.getVideoTracks().forEach(track => {
-            track.enabled = !track.enabled;
-            setIsVideoEnabled(!track.enabled);
-        });
+        const videoTrack = localStream.getVideoTracks()[0];
+        if (videoTrack) {
+            videoTrack.enabled = !videoTrack.enabled;
+            setIsVideoEnabled(!videoTrack.enabled);
+        }
     }
   }
 
@@ -267,7 +268,7 @@ export default function WebRTCVideoCall() {
     }
   }
 
-  if (!hasCameraPermission) {
+  if (!localStream) {
     return (
         <Card className="max-w-md mx-auto text-center">
             <CardHeader>
@@ -338,7 +339,7 @@ export default function WebRTCVideoCall() {
           </div>
 
           {/* Controls */}
-          {localStream && callStatus !== "ended" && (
+          {callStatus === "active" && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex justify-center gap-4 rounded-full bg-background/80 p-3 shadow-lg z-30">
                 <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon" aria-label={isMuted ? "Unmute" : "Mute"}>
                     {isMuted ? <MicOff /> : <Mic />}
@@ -362,5 +363,3 @@ export default function WebRTCVideoCall() {
       </div>
   )
 }
-
-    
