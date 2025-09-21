@@ -51,6 +51,7 @@ export default function WebRTCVideoCall() {
 
   const navigateToDashboard = useCallback(async () => {
     try {
+      // Force a fresh fetch of the user to get the correct, current role.
       const currentUser = await getCurrentUser();
       const role = currentUser.role || 'patient';
       const path = {
@@ -60,7 +61,8 @@ export default function WebRTCVideoCall() {
       }[role];
       router.push(path || '/login');
     } catch (error) {
-      console.error("Failed to get user role, redirecting to login.");
+      console.error("Failed to get user role, redirecting to login.", error);
+      // If getting the user fails, they are likely unauthenticated.
       router.push('/login');
     }
   }, [router]);
@@ -82,7 +84,8 @@ export default function WebRTCVideoCall() {
     if (roomId) {
       const roomRef = ref(db, `calls/${roomId}`);
       try {
-        await remove(roomRef);
+        // No need to wait for removal, just trigger it.
+        remove(roomRef);
       } catch (error) {
         console.error("Error during hangup cleanup:", error);
       }
@@ -90,8 +93,10 @@ export default function WebRTCVideoCall() {
     
     toast({ title: "Call ended." });
     
-    setTimeout(async () => {
-      await navigateToDashboard();
+    // Use a timeout to allow the user to see the "Call Ended" message
+    // before redirecting them based on their fresh role.
+    setTimeout(() => {
+      navigateToDashboard();
     }, 2000);
   }, [pc, localStream, roomId, toast, callStatus, navigateToDashboard]);
   
