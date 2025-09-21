@@ -66,6 +66,7 @@ export default function WebRTCVideoCall() {
     if (roomId) {
       const roomRef = ref(db, `calls/${roomId}`);
       try {
+        // Use a single remove() call for cleanup
         await remove(roomRef);
       } catch (error) {
         console.error("Error during hangup cleanup:", error);
@@ -74,6 +75,7 @@ export default function WebRTCVideoCall() {
     
     toast({ title: "Call ended." });
     
+    // Redirect after a short delay to show the "Call Ended" message
     setTimeout(() => {
       const role = user?.role || 'patient';
       const path = role === 'provider' ? '/provider-dashboard' : '/patient-dashboard';
@@ -92,6 +94,7 @@ export default function WebRTCVideoCall() {
     }
   }, [searchParams]);
 
+  // Get camera permissions as soon as the component mounts
   useEffect(() => {
     const getCameraPermission = async () => {
       try {
@@ -115,122 +118,103 @@ export default function WebRTCVideoCall() {
   }, [toast]);
   
 
-  const createRoom = useCallback(async () => {
-    if (!localStream || !roomId) return;
-    
-    setCallStatus("creating");
-    const newPc = new RTCPeerConnection(servers);
-    setPc(newPc);
-
-    localStream.getTracks().forEach(track => newPc.addTrack(track, localStream));
-
-    const roomRef = ref(db, `calls/${roomId}`);
-    const answerCandidates = ref(db, `calls/${roomId}/answerCandidates`);
-    
-    onDisconnect(roomRef).remove();
-
-    newPc.onicecandidate = event => {
-        if (event.candidate) {
-            const candidateRef = ref(db, `calls/${roomId}/offerCandidates/${Math.random().toString(36).substr(2, 9)}`);
-            set(candidateRef, event.candidate.toJSON());
-        }
-    };
-
-    const offerDescription = await newPc.createOffer();
-    await newPc.setLocalDescription(offerDescription);
-    const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
-    await set(roomRef, { offer, createdAt: Date.now() });
-
-    setCallStatus("waiting");
-
-    onValue(ref(db, `calls/${roomId}/answer`), (snapshot) => {
-        const answerDescription = snapshot.val();
-        if (answerDescription && newPc.currentRemoteDescription?.type !== 'answer') {
-            newPc.setRemoteDescription(new RTCSessionDescription(answerDescription))
-                .then(() => setCallStatus("active"))
-                .catch(e => console.error("Error setting remote description:", e));
-        }
-    }, { onlyOnce: true });
-
-    onValue(answerCandidates, (snapshot) => {
-        snapshot.forEach(childSnapshot => {
-            const candidate = new RTCIceCandidate(childSnapshot.val());
-            newPc.addIceCandidate(candidate).catch(e => console.error("Error adding received ICE candidate", e));
-            remove(childSnapshot.ref);
-        });
-    });
-
-     newPc.ontrack = (event) => {
-        setRemoteStream(event.streams[0]);
-        if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = event.streams[0];
-        }
-    };
-  }, [localStream, roomId]);
-
-  const joinRoom = useCallback(async () => {
-    if (!localStream || !roomId) return;
-
-    setCallStatus("creating");
-    const newPc = new RTCPeerConnection(servers);
-    setPc(newPc);
-    
-    localStream.getTracks().forEach(track => newPc.addTrack(track, localStream));
-
-    const roomRef = ref(db, `calls/${roomId}`);
-    const offerCandidates = ref(db, `calls/${roomId}/offerCandidates`);
-    const answerCandidates = ref(db, `calls/${roomId}/answerCandidates`);
-
-    newPc.onicecandidate = event => {
-        if (event.candidate) {
-            const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${Math.random().toString(36).substr(2, 9)}`);
-            set(candidateRef, event.candidate.toJSON());
-        }
-    };
-
-    const callSnapshot = await get(roomRef);
-    if (!callSnapshot.exists()) {
-        toast({ variant: 'destructive', title: 'Error', description: 'Call room not found.' });
-        setCallStatus("ended");
+  // Main WebRTC logic for creating/joining a room
+  useEffect(() => {
+    if (!localStream || !roomId || callStatus !== 'idle' || !user) {
         return;
     }
-    const offerDescription = callSnapshot.val().offer;
-    await newPc.setRemoteDescription(new RTCSessionDescription(offerDescription));
-
-    const answerDescription = await newPc.createAnswer();
-    await newPc.setLocalDescription(answerDescription);
-    const answer = { sdp: answerDescription.sdp, type: answerDescription.type };
-    await set(ref(db, `calls/${roomId}/answer`), answer);
     
-    setCallStatus("active");
+    const setupCall = async () => {
+        const newPc = new RTCPeerConnection(servers);
+        setPc(newPc);
 
-    onValue(offerCandidates, (snapshot) => {
-        snapshot.forEach(childSnapshot => {
-            const candidate = new RTCIceCandidate(childSnapshot.val());
-            newPc.addIceCandidate(candidate).catch(e => console.error("Error adding received ICE candidate", e));
-            remove(childSnapshot.ref);
-        });
-    });
+        localStream.getTracks().forEach(track => newPc.addTrack(track, localStream));
 
-     newPc.ontrack = (event) => {
-        setRemoteStream(event.streams[0]);
-        if (remoteVideoRef.current) {
-            remoteVideoRef.current.srcObject = event.streams[0];
+        newPc.ontrack = (event) => {
+            setRemoteStream(event.streams[0]);
+            if (remoteVideoRef.current) {
+                remoteVideoRef.current.srcObject = event.streams[0];
+            }
+        };
+
+        const roomRef = ref(db, `calls/${roomId}`);
+        onDisconnect(roomRef).remove(); // Ensure cleanup if the user abruptly leaves
+
+        if (isHost) {
+            setCallStatus("creating");
+            const offerCandidates = ref(db, `calls/${roomId}/offerCandidates`);
+
+            newPc.onicecandidate = event => {
+                if (event.candidate) {
+                    const candidateRef = ref(db, `calls/${roomId}/offerCandidates/${Math.random().toString(36).substr(2, 9)}`);
+                    set(candidateRef, event.candidate.toJSON());
+                }
+            };
+
+            const offerDescription = await newPc.createOffer();
+            await newPc.setLocalDescription(offerDescription);
+            const offer = { sdp: offerDescription.sdp, type: offerDescription.type };
+            await set(roomRef, { offer, createdAt: Date.now() });
+
+            setCallStatus("waiting");
+
+            onValue(ref(db, `calls/${roomId}/answer`), (snapshot) => {
+                const answerDescription = snapshot.val();
+                if (answerDescription && newPc.currentRemoteDescription?.type !== 'answer') {
+                    newPc.setRemoteDescription(new RTCSessionDescription(answerDescription))
+                        .then(() => setCallStatus("active"))
+                        .catch(e => console.error("Error setting remote description:", e));
+                }
+            });
+
+            onValue(ref(db, `calls/${roomId}/answerCandidates`), (snapshot) => {
+                snapshot.forEach(childSnapshot => {
+                    newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val())).catch(e => console.error("Error adding received ICE candidate", e));
+                    remove(childSnapshot.ref);
+                });
+            });
+
+        } else { // Is Guest
+            setCallStatus("creating");
+            const callSnapshot = await get(roomRef);
+            if (!callSnapshot.exists()) {
+                toast({ variant: 'destructive', title: 'Error', description: 'Call room not found.' });
+                setCallStatus("ended");
+                return;
+            }
+
+            newPc.onicecandidate = event => {
+                if (event.candidate) {
+                    const candidateRef = ref(db, `calls/${roomId}/answerCandidates/${Math.random().toString(36).substr(2, 9)}`);
+                    set(candidateRef, event.candidate.toJSON());
+                }
+            };
+
+            const offerDescription = callSnapshot.val().offer;
+            await newPc.setRemoteDescription(new RTCSessionDescription(offerDescription));
+
+            const answerDescription = await newPc.createAnswer();
+            await newPc.setLocalDescription(answerDescription);
+            const answer = { sdp: answerDescription.sdp, type: answerDescription.type };
+            await set(ref(db, `calls/${roomId}/answer`), answer);
+            
+            setCallStatus("active");
+
+            onValue(ref(db, `calls/${roomId}/offerCandidates`), (snapshot) => {
+                snapshot.forEach(childSnapshot => {
+                    newPc.addIceCandidate(new RTCIceCandidate(childSnapshot.val())).catch(e => console.error("Error adding received ICE candidate", e));
+                    remove(childSnapshot.ref);
+                });
+            });
         }
     };
-  }, [localStream, roomId, toast]);
-  
-  useEffect(() => {
-    if (localStream && roomId && callStatus === 'idle' && user) {
-        if (isHost) {
-          createRoom();
-        } else {
-          joinRoom();
-        }
-    }
-  }, [isHost, roomId, localStream, callStatus, user, createRoom, joinRoom]);
+    
+    setupCall();
 
-   useEffect(() => {
+  }, [isHost, roomId, localStream, callStatus, user, toast]);
+  
+  // Hang up on window close
+  useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       hangUp();
     };
@@ -243,28 +227,26 @@ export default function WebRTCVideoCall() {
 
   const toggleMute = () => {
     if (localStream) {
-        const audioTrack = localStream.getAudioTracks()[0];
-        if (audioTrack) {
-            audioTrack.enabled = !audioTrack.enabled;
-            setIsMuted(!audioTrack.enabled);
-        }
+        localStream.getAudioTracks().forEach(track => {
+            track.enabled = !track.enabled;
+            setIsMuted(!track.enabled);
+        });
     }
   };
 
   const toggleVideo = () => {
      if (localStream) {
-        const videoTrack = localStream.getVideoTracks()[0];
-        if (videoTrack) {
-            videoTrack.enabled = !videoTrack.enabled;
-            setIsVideoEnabled(!videoTrack.enabled);
-        }
+        localStream.getVideoTracks().forEach(track => {
+            track.enabled = !track.enabled;
+            setIsVideoEnabled(!track.enabled);
+        });
     }
   }
 
   const copyRoomId = () => {
     if (roomId) {
-      navigator.clipboard.writeText(roomId);
-      toast({title: "Room ID copied to clipboard!"});
+      navigator.clipboard.writeText(`${window.location.origin}/video-consultation?roomId=${roomId}`);
+      toast({title: "Invite link copied to clipboard!"});
     }
   }
 
@@ -310,20 +292,20 @@ export default function WebRTCVideoCall() {
           {!remoteStream && callStatus !== "ended" && (
               <div className="text-center text-muted-foreground z-10 flex flex-col items-center">
                   <Loader2 className="mx-auto h-8 w-8 animate-spin"/>
-                  <p className="mt-4 text-lg">Preparing your secure connection...</p>
+                  <p className="mt-4 text-lg">
+                    { (callStatus === 'creating' || callStatus === 'idle') && "Preparing your secure connection..." }
+                    { callStatus === 'waiting' && "Waiting for patient to join..." }
+                  </p>
                   {isHost && callStatus === 'waiting' && (
                     <div className="mt-4 p-4 bg-background/80 rounded-lg">
-                        <p className="font-semibold">Share this Room ID with the patient:</p>
+                        <p className="font-semibold">Share this link with the patient to join:</p>
                         <div className="flex items-center justify-center gap-2 mt-2">
-                           <span className="font-mono text-xl">{roomId}</span>
-                           <Button variant="ghost" size="icon" onClick={copyRoomId} aria-label="Copy Room ID">
+                           <Button variant="ghost" size="icon" onClick={copyRoomId} aria-label="Copy Invite Link">
                                 <Copy className="h-5 w-5" />
                            </Button>
+                           <span className="text-sm text-muted-foreground">Copy Invite Link</span>
                         </div>
                     </div>
-                  )}
-                  {!isHost && callStatus === 'creating' && (
-                     <p className="mt-2 text-sm">Attempting to join room...</p>
                   )}
               </div>
           )}
