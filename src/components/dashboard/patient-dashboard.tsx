@@ -24,6 +24,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null); // To hold the Leaflet map instance
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
   const [locationStatus, setLocationStatus] = useState<"loading" | "success" | "error">("loading");
   const [locationError, setLocationError] = useState<string | null>(null);
   const { isMobileMenuOpen } = useContext(MenuContext);
@@ -31,6 +32,10 @@ const PatientDashboard = ({ user }: { user: User }) => {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const mapCountryToLanguage = (code: string | null): {lang: 'en' | 'hi' | 'de', langName: string} => {
     const map: Record<string, {lang: 'en' | 'hi' | 'de', langName: string}> = {
@@ -51,8 +56,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
   };
 
   useEffect(() => {
-    // This effect runs only on the client side
-    if (typeof window === 'undefined' || !mapContainerRef.current) return;
+    if (!isClient || typeof window === 'undefined' || !mapContainerRef.current) return;
     
     // @ts-ignore - Leaflet is loaded from CDN
     if (!window.L) {
@@ -160,7 +164,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
       }
     };
 
-  }, [toast, i18n, t]);
+  }, [isClient, toast, i18n, t]);
 
   return (
     <>

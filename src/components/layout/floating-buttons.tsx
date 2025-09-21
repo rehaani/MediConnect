@@ -16,10 +16,12 @@ import { Home } from "lucide-react";
 export default function FloatingButtons() {
     const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
+    const [isMounted, setIsMounted] = useState(false);
     const pathname = usePathname();
     const router = useRouter();
 
     useEffect(() => {
+        setIsMounted(true);
         async function fetchUser() {
             try {
                 // Fetch user on mount to determine button visibility
@@ -61,6 +63,9 @@ export default function FloatingButtons() {
     // Hide the button on auth pages, dashboard pages, or if the user is not logged in.
     const showHomeButton = user && !authPages.includes(pathname) && !dashboardPages.includes(pathname);
 
+    if (!isMounted) {
+        return null;
+    }
 
     return (
         <>
