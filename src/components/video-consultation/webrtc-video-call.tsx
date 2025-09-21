@@ -49,6 +49,22 @@ export default function WebRTCVideoCall() {
 
   const isHost = user?.role === 'provider';
 
+  const navigateToDashboard = useCallback(async () => {
+    try {
+      const currentUser = await getCurrentUser();
+      const role = currentUser.role || 'patient';
+      const path = {
+        provider: '/provider-dashboard',
+        patient: '/patient-dashboard',
+        admin: '/admin-dashboard',
+      }[role];
+      router.push(path || '/login');
+    } catch (error) {
+      console.error("Failed to get user role, redirecting to login.");
+      router.push('/login');
+    }
+  }, [router]);
+
   const hangUp = useCallback(async () => {
     if (callStatus === 'ended') return;
 
@@ -66,7 +82,6 @@ export default function WebRTCVideoCall() {
     if (roomId) {
       const roomRef = ref(db, `calls/${roomId}`);
       try {
-        // Use a single remove() call for cleanup
         await remove(roomRef);
       } catch (error) {
         console.error("Error during hangup cleanup:", error);
@@ -75,13 +90,10 @@ export default function WebRTCVideoCall() {
     
     toast({ title: "Call ended." });
     
-    // Redirect after a short delay to show the "Call Ended" message
-    setTimeout(() => {
-      const role = user?.role || 'patient';
-      const path = role === 'provider' ? '/provider-dashboard' : '/patient-dashboard';
-      router.push(path);
+    setTimeout(async () => {
+      await navigateToDashboard();
     }, 2000);
-  }, [pc, localStream, roomId, toast, callStatus, router, user?.role]);
+  }, [pc, localStream, roomId, toast, callStatus, navigateToDashboard]);
   
   useEffect(() => {
     getCurrentUser().then(setUser);
@@ -94,7 +106,6 @@ export default function WebRTCVideoCall() {
     }
   }, [searchParams]);
 
-  // Get camera permissions as soon as the component mounts
   useEffect(() => {
     const getCameraPermission = async () => {
       try {
@@ -114,11 +125,12 @@ export default function WebRTCVideoCall() {
       }
     };
 
-    getCameraPermission();
-  }, [toast]);
+    if (!localStream) {
+      getCameraPermission();
+    }
+  }, [localStream, toast]);
   
 
-  // Main WebRTC logic for creating/joining a room
   useEffect(() => {
     if (!localStream || !roomId || callStatus !== 'idle' || !user) {
         return;
@@ -138,12 +150,10 @@ export default function WebRTCVideoCall() {
         };
 
         const roomRef = ref(db, `calls/${roomId}`);
-        onDisconnect(roomRef).remove(); // Ensure cleanup if the user abruptly leaves
+        onDisconnect(roomRef).remove();
 
         if (isHost) {
             setCallStatus("creating");
-            const offerCandidates = ref(db, `calls/${roomId}/offerCandidates`);
-
             newPc.onicecandidate = event => {
                 if (event.candidate) {
                     const candidateRef = ref(db, `calls/${roomId}/offerCandidates/${Math.random().toString(36).substr(2, 9)}`);
@@ -174,7 +184,7 @@ export default function WebRTCVideoCall() {
                 });
             });
 
-        } else { // Is Guest
+        } else { 
             setCallStatus("creating");
             const callSnapshot = await get(roomRef);
             if (!callSnapshot.exists()) {
@@ -213,7 +223,6 @@ export default function WebRTCVideoCall() {
 
   }, [isHost, roomId, localStream, callStatus, user, toast]);
   
-  // Hang up on window close
   useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       hangUp();
@@ -285,10 +294,8 @@ export default function WebRTCVideoCall() {
 
   return (
       <div className="relative h-[calc(100vh-10rem)] w-full bg-muted rounded-lg overflow-hidden flex items-center justify-center">
-          {/* Remote Video */}
           <video ref={remoteVideoRef} autoPlay playsInline className={cn("h-full w-full object-cover", { 'hidden': !remoteStream })} />
 
-          {/* Waiting for peer */}
           {!remoteStream && callStatus !== "ended" && (
               <div className="text-center text-muted-foreground z-10 flex flex-col items-center">
                   <Loader2 className="mx-auto h-8 w-8 animate-spin"/>
@@ -310,7 +317,6 @@ export default function WebRTCVideoCall() {
               </div>
           )}
           
-          {/* Local Video (PIP) */}
            <div className={cn("absolute top-4 right-4 h-48 w-72 rounded-lg overflow-hidden border-2 border-primary z-20 transition-opacity", localStream ? "opacity-100" : "opacity-0")}>
                <video ref={localVideoRef} autoPlay playsInline muted className="h-full w-full object-cover" />
                {!isVideoEnabled && (
@@ -320,7 +326,6 @@ export default function WebRTCVideoCall() {
               )}
           </div>
 
-          {/* Controls */}
           {callStatus === "active" && (
             <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex justify-center gap-4 rounded-full bg-background/80 p-3 shadow-lg z-30">
                 <Button onClick={toggleMute} variant={isMuted ? "destructive" : "secondary"} size="icon" aria-label={isMuted ? "Unmute" : "Mute"}>
