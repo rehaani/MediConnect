@@ -7,10 +7,11 @@ import { ref, onValue, set, onDisconnect, remove, get } from "firebase/database"
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2, User } from "lucide-react";
+import { Video, VideoOff, Mic, MicOff, PhoneOff, Copy, Loader2, User, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getCurrentUser, User as UserType } from "@/lib/auth";
+import { Alert, AlertTitle, AlertDescription } from "../ui/alert";
 
 const servers = {
   iceServers: [
@@ -41,6 +42,7 @@ export default function WebRTCVideoCall() {
   const [callStatus, setCallStatus] = useState<"idle" | "creating" | "waiting" | "active" | "ended">("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [isVideoEnabled, setIsVideoEnabled] = useState(true);
+  const [hasCameraPermission, setHasCameraPermission] = useState(true); // Assume true initially
 
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
@@ -48,22 +50,16 @@ export default function WebRTCVideoCall() {
   const isHost = user?.role === 'provider';
 
   const hangUp = useCallback(async () => {
-    if (callStatus === 'ended' || !pc) return;
-
-    pc.close();
-    
+    if (pc) {
+      pc.close();
+      setPc(null);
+    }
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
-    }
-    if (remoteStream) {
-      remoteStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
     }
     
-    setPc(null);
-    setLocalStream(null);
-    setRemoteStream(null);
-    
-    if (roomId) {
+    if (roomId && callStatus !== 'ended') {
       const roomRef = ref(db, `calls/${roomId}`);
       try {
         await remove(roomRef);
@@ -72,17 +68,17 @@ export default function WebRTCVideoCall() {
       }
     }
     
-    setCallStatus("ended");
-    toast({ title: "Call ended." });
-    
-    // Redirect after a short delay
-    setTimeout(() => {
-      const role = user?.role || 'patient';
-      const path = role === 'provider' ? '/provider-dashboard' : '/patient-dashboard';
-      router.push(path);
-    }, 2000);
-
-  }, [pc, localStream, remoteStream, roomId, toast, callStatus, router, user?.role]);
+    if (callStatus !== 'ended') {
+        setCallStatus("ended");
+        toast({ title: "Call ended." });
+        
+        setTimeout(() => {
+          const role = user?.role || 'patient';
+          const path = role === 'provider' ? '/provider-dashboard' : '/patient-dashboard';
+          router.push(path);
+        }, 2000);
+    }
+  }, [pc, localStream, roomId, toast, callStatus, router, user?.role]);
   
   useEffect(() => {
     getCurrentUser().then(setUser);
@@ -96,31 +92,32 @@ export default function WebRTCVideoCall() {
   }, [searchParams]);
 
   useEffect(() => {
-    const setupStreams = async () => {
+    const getCameraPermission = async () => {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+        const stream = await navigator.mediaDevices.getUserMedia({video: true, audio: true});
         setLocalStream(stream);
+        setHasCameraPermission(true);
+
         if (localVideoRef.current) {
           localVideoRef.current.srcObject = stream;
         }
       } catch (error) {
-        console.error("Error accessing media devices.", error);
+        console.error('Error accessing camera:', error);
+        setHasCameraPermission(false);
         toast({
-          variant: "destructive",
-          title: "Media Access Denied",
-          description: "Please enable camera and microphone permissions to start a call.",
+          variant: 'destructive',
+          title: 'Camera Access Denied',
+          description: 'Please enable camera permissions in your browser settings to use this feature.',
         });
       }
     };
-    setupStreams();
+
+    getCameraPermission();
   }, [toast]);
   
 
-  const createRoom = async () => {
-    if (!localStream) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Local stream is not available. Check permissions.' });
-      return;
-    }
+  const createRoom = useCallback(async () => {
+    if (!localStream || !roomId) return;
     
     setCallStatus("creating");
     const newPc = new RTCPeerConnection(servers);
@@ -129,7 +126,6 @@ export default function WebRTCVideoCall() {
     localStream.getTracks().forEach(track => newPc.addTrack(track, localStream));
 
     const roomRef = ref(db, `calls/${roomId}`);
-    const offerCandidates = ref(db, `calls/${roomId}/offerCandidates`);
     const answerCandidates = ref(db, `calls/${roomId}/answerCandidates`);
     
     onDisconnect(roomRef).remove();
@@ -150,16 +146,17 @@ export default function WebRTCVideoCall() {
 
     onValue(ref(db, `calls/${roomId}/answer`), (snapshot) => {
         const answerDescription = snapshot.val();
-        if (answerDescription && !newPc.currentRemoteDescription) {
-            newPc.setRemoteDescription(new RTCSessionDescription(answerDescription));
-            setCallStatus("active");
+        if (answerDescription && newPc.currentRemoteDescription?.type !== 'answer') {
+            newPc.setRemoteDescription(new RTCSessionDescription(answerDescription))
+                .then(() => setCallStatus("active"))
+                .catch(e => console.error("Error setting remote description:", e));
         }
-    });
+    }, { onlyOnce: true });
 
     onValue(answerCandidates, (snapshot) => {
         snapshot.forEach(childSnapshot => {
             const candidate = new RTCIceCandidate(childSnapshot.val());
-            newPc.addIceCandidate(candidate);
+            newPc.addIceCandidate(candidate).catch(e => console.error("Error adding received ICE candidate", e));
             remove(childSnapshot.ref);
         });
     });
@@ -170,13 +167,10 @@ export default function WebRTCVideoCall() {
             remoteVideoRef.current.srcObject = event.streams[0];
         }
     };
-  };
+  }, [localStream, roomId]);
 
-  const joinRoom = async () => {
-    if (!localStream || !roomId) {
-      toast({ variant: 'destructive', title: 'Error', description: 'Local stream or Room ID is missing.' });
-      return;
-    }
+  const joinRoom = useCallback(async () => {
+    if (!localStream || !roomId) return;
 
     setCallStatus("creating");
     const newPc = new RTCPeerConnection(servers);
@@ -196,6 +190,11 @@ export default function WebRTCVideoCall() {
     };
 
     const callSnapshot = await get(roomRef);
+    if (!callSnapshot.exists()) {
+        toast({ variant: 'destructive', title: 'Error', description: 'Call room not found.' });
+        setCallStatus("ended");
+        return;
+    }
     const offerDescription = callSnapshot.val().offer;
     await newPc.setRemoteDescription(new RTCSessionDescription(offerDescription));
 
@@ -209,7 +208,7 @@ export default function WebRTCVideoCall() {
     onValue(offerCandidates, (snapshot) => {
         snapshot.forEach(childSnapshot => {
             const candidate = new RTCIceCandidate(childSnapshot.val());
-            newPc.addIceCandidate(candidate);
+            newPc.addIceCandidate(candidate).catch(e => console.error("Error adding received ICE candidate", e));
             remove(childSnapshot.ref);
         });
     });
@@ -220,16 +219,17 @@ export default function WebRTCVideoCall() {
             remoteVideoRef.current.srcObject = event.streams[0];
         }
     };
-  };
+  }, [localStream, roomId, toast]);
   
   useEffect(() => {
-    if (isHost && roomId && localStream && callStatus === 'idle') {
-      createRoom();
-    } else if (!isHost && roomId && localStream && callStatus === 'idle') {
-      joinRoom();
+    if (localStream && roomId && callStatus === 'idle' && user) {
+        if (isHost) {
+          createRoom();
+        } else {
+          joinRoom();
+        }
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isHost, roomId, localStream, callStatus]);
+  }, [isHost, roomId, localStream, callStatus, user, createRoom, joinRoom]);
 
    useEffect(() => {
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -267,6 +267,24 @@ export default function WebRTCVideoCall() {
     }
   }
 
+  if (!hasCameraPermission) {
+    return (
+        <Card className="max-w-md mx-auto text-center">
+            <CardHeader>
+                <CardTitle className="font-headline">Camera Access Required</CardTitle>
+            </CardHeader>
+            <CardContent>
+                 <Alert variant="destructive">
+                    <AlertTriangle className="h-4 w-4" />
+                    <AlertTitle>Action Needed</AlertTitle>
+                    <AlertDescription>
+                        Please allow camera and microphone access in your browser settings to use this feature. You may need to refresh the page after granting permissions.
+                    </AlertDescription>
+                </Alert>
+            </CardContent>
+        </Card>
+    );
+  }
 
   if (!roomId || !user) {
     return (
@@ -276,7 +294,7 @@ export default function WebRTCVideoCall() {
                 <CardDescription>Preparing session...</CardDescription>
             </CardHeader>
             <CardContent>
-                <Loader2 className="h-8 w-8 animate-spin" />
+                <Loader2 className="h-8 w-8 animate-spin mx-auto" />
             </CardContent>
         </Card>
     )
@@ -292,7 +310,7 @@ export default function WebRTCVideoCall() {
               <div className="text-center text-muted-foreground z-10 flex flex-col items-center">
                   <Loader2 className="mx-auto h-8 w-8 animate-spin"/>
                   <p className="mt-4 text-lg">Preparing your secure connection...</p>
-                  {isHost && (
+                  {isHost && callStatus === 'waiting' && (
                     <div className="mt-4 p-4 bg-background/80 rounded-lg">
                         <p className="font-semibold">Share this Room ID with the patient:</p>
                         <div className="flex items-center justify-center gap-2 mt-2">
@@ -302,6 +320,9 @@ export default function WebRTCVideoCall() {
                            </Button>
                         </div>
                     </div>
+                  )}
+                  {!isHost && callStatus === 'creating' && (
+                     <p className="mt-2 text-sm">Attempting to join room...</p>
                   )}
               </div>
           )}
@@ -341,3 +362,5 @@ export default function WebRTCVideoCall() {
       </div>
   )
 }
+
+    
