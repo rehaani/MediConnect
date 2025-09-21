@@ -11,7 +11,6 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { ToastAction } from "../ui/toast";
-import { AlertDialog, AlertDialogAction, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "../ui/alert-dialog";
 import { useRouter } from "next/navigation";
 
 
@@ -64,6 +63,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
     }
      // If map is already initialized, don't re-initialize
     if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize();
         return;
     }
 
