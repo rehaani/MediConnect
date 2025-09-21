@@ -87,15 +87,16 @@ const PatientDashboard = ({ user }: { user: User }) => {
     }).addTo(map);
 
     const handleLocationFound = async (e: any) => {
+        if (!mapInstanceRef.current) return;
         const radius = e.accuracy;
         const latlng = e.latlng;
 
-        map.setView(latlng, 15);
+        mapInstanceRef.current.setView(latlng, 15);
 
-        L.marker(latlng).addTo(map)
+        L.marker(latlng).addTo(mapInstanceRef.current)
           .bindPopup(`You are within ${radius.toFixed(0)} meters from this point`).openPopup();
 
-        L.circle(latlng, radius).addTo(map);
+        L.circle(latlng, radius).addTo(mapInstanceRef.current);
         setLocationStatus("success");
 
         // Reverse geocoding
@@ -136,9 +137,10 @@ const PatientDashboard = ({ user }: { user: User }) => {
     }
 
     const handleLocationError = (e: any) => {
+        if (!mapInstanceRef.current) return;
         console.error("Geolocation error:", e.message);
         // Set a default view (e.g., center of India)
-        map.setView([20.5937, 78.9629], 5);
+        mapInstanceRef.current.setView([20.5937, 78.9629], 5);
         setLocationStatus("error");
         setLocationError("Could not access your location. Please enable location services in your browser settings to see your live location and get language suggestions.");
     }
@@ -148,7 +150,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
 
     // Show a consent-like message before requesting
     setLocationError('Please allow location access to see your live position on the map and help us suggest your preferred language.');
-    map.locate({ setView: true, maxZoom: 16 });
+    map.locate({ setView: false, maxZoom: 16 });
     
     // Cleanup function
     return () => {
@@ -251,3 +253,5 @@ const PatientDashboard = ({ user }: { user: User }) => {
 };
 
 export default PatientDashboard;
+
+    
