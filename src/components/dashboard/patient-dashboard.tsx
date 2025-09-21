@@ -52,7 +52,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
   };
 
   useEffect(() => {
-    // Dynamically check if window is defined (for SSR)
+    // This effect runs only on the client side
     if (typeof window === 'undefined' || !mapContainerRef.current) return;
     
     // @ts-ignore - Leaflet is loaded from CDN
@@ -253,7 +253,3 @@ const PatientDashboard = ({ user }: { user: User }) => {
 };
 
 export default PatientDashboard;
-
-    
-
-    
