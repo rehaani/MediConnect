@@ -5,7 +5,7 @@
 - Multi-Role User Registration: Allow registration for patients, healthcare providers, and admins.
 - OTP Verification: Implement phone number OTP verification with email/password fallback.
 - Role-Based Access Control: Restrict data access based on user roles. Enforce access control at the UI level, based on the detected role.
-- Emergency Routing Tool: Use an LLM to evaluate whether location services for emergency routing can and should be used, based on the context and user permissions. The LLM acts as a tool which decides how to utilize location information effectively in emergencies, determining when to suppress the information if it shouldn't be exposed.
+- Emergency Routing Tool: Use an LLM to evaluate whether location services for emergency routing can and should be used, based on the context 6 hand user permissions. The LLM acts as a tool which decides how to utilize location information effectively in emergencies, determining when to suppress the information if it shouldn't be exposed.
 - Profile Completion Flow: Enable progressive profile building over multiple sessions.
 - Password Reset Assistance: Guide password reset flow with voice prompts for low-literacy users.
 - Biometric Authentication: Offer biometric authentication options for sensitive actions, falling back to the basic flow when biometrics aren't possible or not set up by the user.
