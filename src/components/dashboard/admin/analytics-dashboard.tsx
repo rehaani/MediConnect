@@ -17,6 +17,7 @@ import {
   Pie,
   Cell,
   Label,
+  ResponsiveContainer,
 } from "recharts"
 
 import { cn } from "@/lib/utils"
