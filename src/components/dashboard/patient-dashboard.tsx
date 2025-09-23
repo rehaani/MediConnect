@@ -144,7 +144,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
 
       const handleLocationError = (e: any) => {
           if (!mapInstanceRef.current) return;
-          console.error("Geolocation error:", e.message);
+          console.error("Geolocation error:", e);
           
           let errorMessage = "Could not access your location. Please enable location services in your browser settings to see your live location and get language suggestions.";
           if (e.code === 1) { // User denied permission
