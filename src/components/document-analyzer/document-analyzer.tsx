@@ -1,10 +1,11 @@
 
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
-import { useState, useTransition, useMemo } from "react";
+import { useState, useTransition, useMemo, useRef } from "react";
 import { Bot, Loader2, Send, File, X, FileImage, FileText, User } from "lucide-react";
 import {
   AnalyzeDocumentsInput,
@@ -88,7 +89,7 @@ export default function DocumentAnalyzer({ user }: { user: UserType }) {
   const [result, setResult] = useState<AnalyzeDocumentsOutput | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
-  const fileInputRef = useState<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [selectedPatientId, setSelectedPatientId] = useState<string>(user.role === 'patient' ? 'user-alex-doe' : '');
   const { t } = useTranslation();
 
@@ -413,5 +414,7 @@ export default function DocumentAnalyzer({ user }: { user: UserType }) {
     </div>
   );
 }
+
+    
 
     
