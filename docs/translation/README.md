@@ -83,4 +83,4 @@ const MyComponent = () => {
 ### 6. Testing Instructions
 1.  **Manual Language Switch**: Click the language toggle button (globe icon) in the UI and select "हिंदी (Hindi)". Verify that the dashboard title and other text elements change to Hindi.
 2.  **Automatic Detection**: Clear your browser's site data for the application to remove any saved language preference. Set your browser's primary language to German. Reload the application. Verify that the UI automatically loads in German.
-3.  **Location-based Suggestion**: On the patient dashboard, if your location is detected as being in India (you may need a VPN or browser location spoofer to simulate this), verify that a toast notification appears suggesting you switch to Hindi. Click the "Switch" button on the toast and confirm the language changes.
+3.  **Location-based Suggestion**: On the patient dashboard, if your location is detected as being in India (you may need a VPN or browser location spoofer to simulate this), verify that a toast notification appears suggesting you to switch to Hindi. Click the "Switch" button on the toast and confirm the language changes.
