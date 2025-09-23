@@ -9,6 +9,26 @@ import { ThemeProvider } from '@/components/layout/theme-provider';
 import { MenuProvider } from '@/context/menu-provider';
 import I18nProvider from '@/context/i18n-provider';
 import FloatingButtons from '@/components/layout/floating-buttons';
+import { Montserrat, Roboto_Slab, Nunito } from 'next/font/google';
+
+const montserrat = Montserrat({
+  subsets: ['latin'],
+  variable: '--font-montserrat',
+  display: 'swap',
+});
+
+const robotoSlab = Roboto_Slab({
+  subsets: ['latin'],
+  variable: '--font-roboto-slab',
+  display: 'swap',
+});
+
+const nunito = Nunito({
+  subsets: ['latin'],
+  variable: '--font-nunito',
+  display: 'swap',
+});
+
 
 function RootLayoutContent({ children }: { children: React.ReactNode }) {
   return (
@@ -30,17 +50,15 @@ export default function RootLayout({
       <head>
         <title>MediConnect Auth</title>
         <meta name="description" content="Secure Authentication for Modern Healthcare" />
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Montserrat&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Nunito&display=swap" rel="stylesheet" />
         <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossOrigin=""/>
         <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossOrigin=""></script>
       </head>
       <body
         className={cn(
           'min-h-screen bg-background font-body antialiased',
+          montserrat.variable,
+          robotoSlab.variable,
+          nunito.variable
         )}
       >
         <I18nProvider>

@@ -10,9 +10,9 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Nunito', 'sans-serif'],
-        headline: ['Montserrat', 'sans-serif'],
-        button: ['"Roboto Slab"', 'serif'],
+        body: ['var(--font-nunito)', 'sans-serif'],
+        headline: ['var(--font-montserrat)', 'sans-serif'],
+        button: ['var(--font-roboto-slab)', 'serif'],
         code: ['monospace'],
       },
       colors: {

@@ -39,6 +39,7 @@ export default function WelcomePage() {
             src="https://picsum.photos/seed/welcome-hero/1200/800"
             alt="Rural healthcare professional assisting a patient"
             fill
+            priority
             className="absolute z-0 object-cover"
             data-ai-hint="rural healthcare"
           />
