@@ -60,7 +60,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
     if (!isClient) return;
     
     // @ts-ignore - Leaflet is loaded from CDN
-    if (!window.L) {
+    if (typeof window === 'undefined' || !window.L) {
         console.error("Leaflet is not loaded");
         setLocationStatus("error");
         setLocationError("Map service is currently unavailable. Please try again later.");
@@ -144,10 +144,20 @@ const PatientDashboard = ({ user }: { user: User }) => {
     const handleLocationError = (e: any) => {
         if (!mapInstanceRef.current) return;
         console.error("Geolocation error:", e.message);
+        
+        let errorMessage = "Could not access your location. Please enable location services in your browser settings to see your live location and get language suggestions.";
+        if (e.code === 1) { // User denied permission
+            errorMessage = "You have blocked location access. To use this feature, please enable location permissions for this site in your browser settings.";
+        } else if (e.code === 2) { // Position unavailable
+             errorMessage = "Your location could not be determined at this time. Please try again later.";
+        } else if (e.code === 3) { // Timeout
+            errorMessage = "The request to get your location timed out. Please check your network connection and try again.";
+        }
+        
         // Set a default view (e.g., center of India)
         mapInstanceRef.current.setView([20.5937, 78.9629], 5);
         setLocationStatus("error");
-        setLocationError("Could not access your location. Please enable location services in your browser settings to see your live location and get language suggestions.");
+        setLocationError(errorMessage);
     }
     
     map.on('locationfound', handleLocationFound);
