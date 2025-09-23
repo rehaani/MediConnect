@@ -57,7 +57,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
   };
 
   useEffect(() => {
-    if (!isClient || typeof window === 'undefined' || !mapContainerRef.current) return;
+    if (!isClient) return;
     
     // @ts-ignore - Leaflet is loaded from CDN
     if (!window.L) {
@@ -67,8 +67,8 @@ const PatientDashboard = ({ user }: { user: User }) => {
         return;
     }
      // If map is already initialized, don't re-initialize
-    if (mapInstanceRef.current) {
-        mapInstanceRef.current.invalidateSize();
+    if (mapInstanceRef.current || !mapContainerRef.current) {
+        if(mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
         return;
     }
 
@@ -165,7 +165,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
       }
     };
 
-  }, [isClient, toast, i18n, t]);
+  }, [isClient, i18n, t, toast]);
 
   if (!isClient) {
     return (
