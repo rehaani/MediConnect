@@ -1,3 +1,4 @@
+
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -30,6 +31,7 @@ import { registerWebAuthn } from "@/lib/webauthn";
 
 const profileSchema = z.object({
   fullName: z.string().min(2, { message: "Full name must be at least 2 characters." }),
+  email: z.string().email(),
   dob: z.string().min(1, { message: "Date of birth is required." }),
   phone: z.string().min(10, { message: "Please enter a valid phone number." }),
   address: z.string().min(5, { message: "Please enter a valid address." }),
@@ -43,6 +45,7 @@ export default function ProfileForm() {
     // In a real app, you'd fetch and pre-fill this data.
     defaultValues: {
       fullName: "Dr. Evelyn Reed",
+      email: "dr.evelyn.reed@medconnect.com",
       dob: "1985-05-20",
       phone: "+1234567890",
       address: "123 Health St, Medville, MD 12345",
@@ -61,7 +64,17 @@ export default function ProfileForm() {
 
   async function handleBiometricRegistration() {
     try {
-        const success = await registerWebAuthn();
+        const email = form.getValues('email');
+        if (!email) {
+            toast({
+                variant: "destructive",
+                title: "Email Required",
+                description: "Cannot enable biometrics without a valid email in the profile.",
+            });
+            return;
+        }
+
+        const success = await registerWebAuthn(email);
         if (success) {
             toast({
                 title: "Biometric Sign-in Enabled",
@@ -106,6 +119,22 @@ export default function ProfileForm() {
                     <FormControl>
                       <Input placeholder="Your full name" {...field} />
                     </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+               <FormField
+                control={form.control}
+                name="email"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Email</FormLabel>
+                    <FormControl>
+                      <Input placeholder="your.email@example.com" {...field} readOnly />
+                    </FormControl>
+                    <FormDescription>
+                        You cannot change your email address.
+                    </FormDescription>
                     <FormMessage />
                   </FormItem>
                 )}
