@@ -75,6 +75,6 @@ const emergencyContacts = [
 
 ### 6. Testing Instructions
 1.  **View Contacts**: Log in as a patient and navigate to the patient dashboard. Verify that the "Emergency Contacts" card is visible and displays the correct mock contacts.
-2.  **Location Display (Grant Permission)**: When prompted by the browser for location access, click "Allow." Verify the "Live Location" map card centers on your current location and displays a marker.
+2.  **Location Display (Grant Permission)**: When prompted by the browser for location access, click "Allow." Verify the map card centers on your current location and displays a marker.
 3.  **Location Display (Deny Permission)**: In a new session or after resetting permissions, click "Block" when prompted for location access. Verify the map shows a default view and a user-friendly error message is displayed below it, explaining how to enable permissions.
 4.  **Call Button (UI)**: Click the phone icon next to an emergency contact. While it won't trigger a real call in a desktop browser, verify that the button is interactive and does not cause any console errors. On a mobile device, this action should open the native dialer.
