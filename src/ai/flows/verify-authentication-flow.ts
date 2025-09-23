@@ -21,7 +21,6 @@ import type {
 import type {AuthenticationResponseJSON} from '@simplewebauthn/types';
 
 const rpID = process.env.RP_ID || 'localhost';
-const origin = `https://${rpID}`;
 
 export const VerifyAuthenticationInputSchema = z.object({
   response: z.custom<AuthenticationResponseJSON>(),
@@ -72,7 +71,7 @@ const verifyAuthenticationFlow = ai.defineFlow(
       const opts: VerifyAuthenticationResponseOpts = {
         response,
         expectedChallenge: expectedChallenge || '',
-        expectedOrigin: origin,
+        expectedOrigin: '*', // Allow any origin for this prototype
         expectedRPID: rpID,
         authenticator: credential,
         requireUserVerification: true,

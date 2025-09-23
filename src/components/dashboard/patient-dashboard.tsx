@@ -22,7 +22,7 @@ const emergencyContacts = [
 
 const PatientDashboard = ({ user }: { user: User }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null); // To hold the Leaflet map instance
+  const mapInstanceRef = useRef<L.Map | null>(null); // To hold the Leaflet map instance
   const [isClient, setIsClient] = useState(false);
   const [locationStatus, setLocationStatus] = useState<"loading" | "success" | "error">("loading");
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -92,7 +92,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
       }).addTo(map);
 
-      const handleLocationFound = async (e: any) => {
+      const handleLocationFound = async (e: L.LocationEvent) => {
           if (!mapInstanceRef.current) return;
           const radius = e.accuracy;
           const latlng = e.latlng;
@@ -142,7 +142,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
           }
       }
 
-      const handleLocationError = (e: any) => {
+      const handleLocationError = (e: L.ErrorEvent) => {
           if (!mapInstanceRef.current) return;
           console.error("Geolocation error:", e);
           
@@ -252,9 +252,11 @@ const PatientDashboard = ({ user }: { user: User }) => {
                                   <p className="font-semibold">{contact.name}</p>
                                   <p className="text-sm text-muted-foreground">{contact.relationship}</p>
                               </div>
-                              <Button size="icon">
-                                  <Phone />
-                                  <span className="sr-only">Call {contact.name}</span>
+                              <Button size="icon" asChild>
+                                  <a href={`tel:${contact.phone}`}>
+                                    <Phone />
+                                    <span className="sr-only">Call {contact.name}</span>
+                                  </a>
                               </Button>
                           </div>
                       ))}
