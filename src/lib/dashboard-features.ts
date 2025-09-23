@@ -68,6 +68,14 @@ export const FEATURES: Feature[] = [
       description: 'Manage family members.',
       roles: ['patient'],
     },
+     {
+      name: 'Community Chat',
+      path: '/community-chat',
+      icon: 'Users',
+      bgColor: '#f59e0b',
+      description: 'Connect with the community.',
+      roles: ['patient', 'provider'],
+    },
     {
       name: 'Video Consultation',
       path: '/video-consultation',
