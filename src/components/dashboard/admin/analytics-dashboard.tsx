@@ -6,7 +6,6 @@ import { addDays, format } from "date-fns"
 import { Calendar as CalendarIcon, Download, Activity, Users, Clock, BarChart2 } from "lucide-react"
 import { DateRange } from "react-day-picker"
 import {
-  ResponsiveContainer,
   LineChart,
   Line,
   XAxis,
@@ -17,6 +16,7 @@ import {
   PieChart,
   Pie,
   Cell,
+  Label,
 } from "recharts"
 
 import { cn } from "@/lib/utils"
@@ -29,7 +29,14 @@ import {
 } from "@/components/ui/popover"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { ChartTooltipContent } from "@/components/ui/chart"
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+  ChartLegend,
+  ChartLegendContent,
+} from "@/components/ui/chart"
 
 const userGrowthData = [
   { date: "Jan", users: 4000 },
@@ -39,14 +46,26 @@ const userGrowthData = [
   { date: "May", users: 6000 },
   { date: "Jun", users: 7500 },
 ]
+const userGrowthConfig: ChartConfig = {
+    users: {
+        label: "Users",
+        color: "hsl(var(--primary))",
+    }
+}
 
 const featureUsageData = [
-  { name: "AI Analyzer", value: 400 },
-  { name: "Appointments", value: 300 },
-  { name: "Symptom Tracker", value: 200 },
-  { name: "Medications", value: 100 },
+  { name: "AI Analyzer", value: 400, fill: "var(--color-analyzer)" },
+  { name: "Appointments", value: 300, fill: "var(--color-appointments)" },
+  { name: "Symptom Tracker", value: 200, fill: "var(--color-tracker)" },
+  { name: "Medications", value: 100, fill: "var(--color-meds)" },
 ]
-const PIE_COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"]
+const featureUsageConfig: ChartConfig = {
+    analyzer: { label: "AI Analyzer", color: "hsl(var(--chart-1))" },
+    appointments: { label: "Appointments", color: "hsl(var(--chart-2))" },
+    tracker: { label: "Symptom Tracker", color: "hsl(var(--chart-3))" },
+    meds: { label: "Medications", color: "hsl(var(--chart-4))" },
+}
+
 
 const recentActivities = [
   { id: 'log_1', admin: 'Sam Chen', action: 'Changed role for user usr_4 to patient', timestamp: '2023-10-27 10:00:00' },
@@ -168,16 +187,25 @@ export default function AnalyticsDashboard() {
             <CardDescription>Total users over the selected date range.</CardDescription>
           </CardHeader>
           <CardContent className="h-[300px] w-full">
-            <ResponsiveContainer>
-              <LineChart data={userGrowthData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="date" />
-                <YAxis />
-                <Tooltip content={<ChartTooltipContent />} />
-                <Legend />
-                <Line type="monotone" dataKey="users" stroke="hsl(var(--primary))" activeDot={{ r: 8 }} />
+            <ChartContainer config={userGrowthConfig} className="min-h-[200px] w-full">
+              <LineChart accessibilityLayer data={userGrowthData}>
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line
+                  dataKey="users"
+                  type="natural"
+                  stroke="var(--color-users)"
+                  strokeWidth={2}
+                  dot={false}
+                />
               </LineChart>
-            </ResponsiveContainer>
+            </ChartContainer>
           </CardContent>
         </Card>
         <Card className="lg:col-span-2">
@@ -186,17 +214,15 @@ export default function AnalyticsDashboard() {
                 <CardDescription>Distribution of key feature usage.</CardDescription>
             </CardHeader>
             <CardContent className="h-[300px] w-full flex items-center justify-center">
-                 <ResponsiveContainer>
+                 <ChartContainer config={featureUsageConfig} className="min-h-[200px] w-full">
                     <PieChart>
-                        <Pie data={featureUsageData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} fill="#8884d8" label>
-                             {featureUsageData.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                             ))}
-                        </Pie>
-                        <Tooltip content={<ChartTooltipContent />} />
-                        <Legend />
+                      <ChartTooltip
+                        content={<ChartTooltipContent nameKey="name" hideLabel />}
+                      />
+                      <Pie data={featureUsageData} dataKey="value" nameKey="name" />
+                      <ChartLegend content={<ChartLegendContent nameKey="name" />} />
                     </PieChart>
-                 </ResponsiveContainer>
+                  </ChartContainer>
             </CardContent>
         </Card>
       </div>
@@ -238,3 +264,5 @@ export default function AnalyticsDashboard() {
     </div>
   )
 }
+
+    
