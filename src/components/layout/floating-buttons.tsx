@@ -24,8 +24,13 @@ export default function FloatingButtons() {
         setIsMounted(true);
         async function fetchUser() {
             try {
-                // Fetch user on mount to determine button visibility
-                const userData = await getCurrentUser();
+                // Determine role from path to fetch the correct user for the menu
+                let role: UserRole | undefined;
+                if (pathname.includes('provider')) role = 'provider';
+                else if (pathname.includes('admin')) role = 'admin';
+                else if (pathname.includes('patient')) role = 'patient';
+
+                const userData = await getCurrentUser(role);
                 setUser(userData);
             } catch (e) {
                 setUser(null);
@@ -36,25 +41,23 @@ export default function FloatingButtons() {
         fetchUser();
     }, [pathname]);
     
-    const handleHomeClick = async () => {
-        try {
-            // Always fetch the current user on click to get the correct role
-            const currentUser = await getCurrentUser();
-            const role = currentUser.role || 'patient'; 
-
-            const rolePaths: Record<UserRole, string> = {
-                patient: '/patient-dashboard',
-                provider: '/provider-dashboard',
-                admin: '/admin-dashboard',
-            };
-            
-            router.push(rolePaths[role]);
-
-        } catch (error) {
-            console.error("Error navigating to dashboard:", error);
-            // Fallback for any unexpected errors (e.g., user signed out)
-            router.push('/login');
+    const handleHomeClick = () => {
+        let role: UserRole = 'patient'; // Default to patient
+        if (pathname.startsWith('/provider-dashboard')) {
+            role = 'provider';
+        } else if (pathname.startsWith('/admin-dashboard')) {
+            role = 'admin';
+        } else if (pathname.startsWith('/patient-dashboard') || user?.role === 'patient') {
+             role = 'patient';
         }
+
+        const rolePaths: Record<UserRole, string> = {
+            patient: '/patient-dashboard',
+            provider: '/provider-dashboard',
+            admin: '/admin-dashboard',
+        };
+        
+        router.push(rolePaths[role] || '/login');
     };
 
     const authPages = ['/login', '/register', '/forgot-password', '/otp-verify', '/welcome', '/'];
