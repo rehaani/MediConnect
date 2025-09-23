@@ -13,10 +13,15 @@ import type {
 /**
  * Triggers the browser's WebAuthn registration process.
  */
-export async function registerWebAuthn(): Promise<boolean> {
+export async function registerWebAuthn(email: string): Promise<boolean> {
   // 1. Get registration options from the server
   const options: PublicKeyCredentialCreationOptionsJSON = await fetch(
-    '/api/webauthn/generate-registration-options'
+    '/api/webauthn/generate-registration-options',
+     {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ email }),
+    }
   ).then(r => r.json());
 
   if (options.error) {
@@ -39,7 +44,7 @@ export async function registerWebAuthn(): Promise<boolean> {
     {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(attestation),
+      body: JSON.stringify({ response: attestation, email }),
     }
   ).then(r => r.json());
   
@@ -53,10 +58,15 @@ export async function registerWebAuthn(): Promise<boolean> {
 /**
  * Triggers the browser's WebAuthn authentication process.
  */
-export async function loginWithWebAuthn(): Promise<boolean> {
+export async function loginWithWebAuthn(email: string): Promise<boolean> {
   // 1. Get authentication options from the server
   const options: PublicKeyCredentialRequestOptionsJSON = await fetch(
-    '/api/webauthn/generate-authentication-options'
+    '/api/webauthn/generate-authentication-options',
+    {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ email }),
+    }
   ).then(r => r.json());
   
   if (options.error) {
@@ -79,7 +89,7 @@ export async function loginWithWebAuthn(): Promise<boolean> {
     {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify(assertion),
+      body: JSON.stringify({ response: assertion, email }),
     }
   ).then(r => r.json());
 

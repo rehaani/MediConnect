@@ -11,11 +11,14 @@ import {generateRegistrationOptions as generateOptions} from '@simplewebauthn/se
 import type {PublicKeyCredentialCreationOptionsJSON} from '@simplewebauthn/types';
 import {findUser, getCredentialsForUser} from '@/lib/db';
 
-// We do not define an input schema because this flow is for the current user.
-// In a real app, you would get the user from the session.
-
 const rpName = process.env.RP_NAME || 'MediConnect';
 const rpID = process.env.RP_ID || 'localhost';
+
+export const GenerateRegistrationOptionsInputSchema = z.object({
+  email: z.string().email(),
+});
+export type GenerateRegistrationOptionsInput = z.infer<typeof GenerateRegistrationOptionsInputSchema>;
+
 
 export const GenerateRegistrationOptionsOutputSchema =
   z.custom<PublicKeyCredentialCreationOptionsJSON>();
@@ -23,18 +26,19 @@ export type GenerateRegistrationOptionsOutput = z.infer<
   typeof GenerateRegistrationOptionsOutputSchema
 >;
 
-export async function generateRegistrationOptions(): Promise<GenerateRegistrationOptionsOutput> {
-  return generateRegistrationOptionsFlow();
+export async function generateRegistrationOptions(input: GenerateRegistrationOptionsInput): Promise<GenerateRegistrationOptionsOutput> {
+  return generateRegistrationOptionsFlow(input);
 }
 
 const generateRegistrationOptionsFlow = ai.defineFlow(
   {
     name: 'generateRegistrationOptionsFlow',
+    inputSchema: GenerateRegistrationOptionsInputSchema,
     outputSchema: GenerateRegistrationOptionsOutputSchema,
   },
-  async () => {
+  async ({email}) => {
     // In a real app, you would get the user from the session.
-    const user = findUser('dr.evelyn.reed@medconnect.com');
+    const user = findUser(email);
     if (!user) {
       throw new Error('User not found.');
     }

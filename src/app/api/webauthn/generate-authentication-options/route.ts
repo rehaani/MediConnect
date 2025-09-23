@@ -1,9 +1,13 @@
 import { generateAuthenticationOptions } from "@/ai/flows/generate-authentication-options-flow";
 import { NextResponse } from "next/server";
 
-export async function GET() {
+export async function POST(request: Request) {
     try {
-        const options = await generateAuthenticationOptions();
+        const { email } = await request.json();
+        if (!email) {
+            return NextResponse.json({ error: "Email is required" }, { status: 400 });
+        }
+        const options = await generateAuthenticationOptions({ email });
         return NextResponse.json(options);
     } catch (e: any) {
         console.error(e);

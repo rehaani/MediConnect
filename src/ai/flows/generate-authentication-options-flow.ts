@@ -17,24 +17,30 @@ import type {PublicKeyCredentialRequestOptionsJSON} from '@simplewebauthn/types'
 // In a real app, you would get the user from the session.
 const rpID = process.env.RP_ID || 'localhost';
 
+export const GenerateAuthenticationOptionsInputSchema = z.object({
+  email: z.string().email(),
+});
+export type GenerateAuthenticationOptionsInput = z.infer<typeof GenerateAuthenticationOptionsInputSchema>;
+
+
 export const GenerateAuthenticationOptionsOutputSchema =
   z.custom<PublicKeyCredentialRequestOptionsJSON>();
 export type GenerateAuthenticationOptionsOutput = z.infer<
   typeof GenerateAuthenticationOptionsOutputSchema
 >;
 
-export async function generateAuthenticationOptions(): Promise<GenerateAuthenticationOptionsOutput> {
-  return generateAuthenticationOptionsFlow();
+export async function generateAuthenticationOptions(input: GenerateAuthenticationOptionsInput): Promise<GenerateAuthenticationOptionsOutput> {
+  return generateAuthenticationOptionsFlow(input);
 }
 
 const generateAuthenticationOptionsFlow = ai.defineFlow(
   {
     name: 'generateAuthenticationOptionsFlow',
+    inputSchema: GenerateAuthenticationOptionsInputSchema,
     outputSchema: GenerateAuthenticationOptionsOutputSchema,
   },
-  async () => {
-    // In a real app, you would get the user from the session.
-    const user = findUser('dr.evelyn.reed@medconnect.com');
+  async ({email}) => {
+    const user = findUser(email);
     if (!user) {
       throw new Error('User not found');
     }

@@ -19,8 +19,10 @@ import type {RegistrationResponseJSON} from '@simplewebauthn/types';
 const rpID = process.env.RP_ID || 'localhost';
 const origin = `https://${rpID}`;
 
-export const VerifyRegistrationInputSchema =
-  z.custom<RegistrationResponseJSON>();
+export const VerifyRegistrationInputSchema = z.object({
+  response: z.custom<RegistrationResponseJSON>(),
+  email: z.string().email(),
+});
 export type VerifyRegistrationInput = z.infer<
   typeof VerifyRegistrationInputSchema
 >;
@@ -44,9 +46,9 @@ const verifyRegistrationFlow = ai.defineFlow(
     inputSchema: VerifyRegistrationInputSchema,
     outputSchema: VerifyRegistrationOutputSchema,
   },
-  async response => {
+  async ({response, email}) => {
     // In a real app, you would get the user from the session.
-    const user = findUser('dr.evelyn.reed@medconnect.com');
+    const user = findUser(email);
 
     if (!user) {
       throw new Error('User not found');

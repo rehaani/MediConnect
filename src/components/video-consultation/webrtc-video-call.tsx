@@ -49,10 +49,20 @@ export default function WebRTCVideoCall() {
 
   const isHost = user?.role === 'provider';
 
+  const resetCallState = () => {
+    setPc(null);
+    setLocalStream(null);
+    setRemoteStream(null);
+    setRoomId(null);
+    setCallStatus("idle");
+    setIsMuted(false);
+    setIsVideoEnabled(true);
+  }
+
   const navigateToDashboard = useCallback(async () => {
     try {
       // Force a fresh fetch of the user to get the correct, current role.
-      const currentUser = await getCurrentUser();
+      const currentUser = await getCurrentUser(user?.role);
       const role = currentUser.role || 'patient';
       const path = {
         provider: '/provider-dashboard',
@@ -65,7 +75,7 @@ export default function WebRTCVideoCall() {
       // If getting the user fails, they are likely unauthenticated.
       router.push('/login');
     }
-  }, [router]);
+  }, [router, user?.role]);
 
   const hangUp = useCallback(async () => {
     if (callStatus === 'ended') return;
@@ -74,11 +84,9 @@ export default function WebRTCVideoCall() {
     
     if (pc) {
       pc.close();
-      setPc(null);
     }
     if (localStream) {
       localStream.getTracks().forEach(track => track.stop());
-      setLocalStream(null);
     }
     
     if (roomId) {
@@ -96,6 +104,7 @@ export default function WebRTCVideoCall() {
     // Use a timeout to allow the user to see the "Call Ended" message
     // before redirecting them based on their fresh role.
     setTimeout(() => {
+      resetCallState();
       navigateToDashboard();
     }, 2000);
   }, [pc, localStream, roomId, toast, callStatus, navigateToDashboard]);

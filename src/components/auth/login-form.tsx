@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/select";
 import type { UserRole } from "@/lib/auth";
 import { loginWithWebAuthn } from "@/lib/webauthn";
+import { getCurrentUser } from "@/lib/auth";
 
 const formSchema = z.object({
   email: z.string().email({ message: "Please enter a valid email." }),
@@ -65,15 +66,26 @@ export default function LoginForm() {
 
   async function handleBiometricAuth() {
     try {
-        const success = await loginWithWebAuthn();
+        const email = form.getValues('email');
+        if (!email) {
+            toast({
+                variant: "destructive",
+                title: "Email Required",
+                description: "Please enter your email to sign in with biometrics.",
+            });
+            return;
+        }
+
+        const success = await loginWithWebAuthn(email);
+
         if (success) {
             toast({
                 title: "Biometric Sign-in Successful",
                 description: "You are now signed in.",
             });
-            // Redirect to the appropriate dashboard based on user role after successful sign-in
-            // For this demo, we assume the biometric user is a provider.
-            router.push('/dashboard?role=provider');
+            // Fetch user to get their role for correct redirection
+            const user = await getCurrentUser();
+            router.push(`/dashboard?role=${user.role}`);
         } else {
              toast({
                 variant: "destructive",

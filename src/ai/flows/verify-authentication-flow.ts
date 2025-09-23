@@ -23,8 +23,10 @@ import type {AuthenticationResponseJSON} from '@simplewebauthn/types';
 const rpID = process.env.RP_ID || 'localhost';
 const origin = `https://${rpID}`;
 
-export const VerifyAuthenticationInputSchema =
-  z.custom<AuthenticationResponseJSON>();
+export const VerifyAuthenticationInputSchema = z.object({
+  response: z.custom<AuthenticationResponseJSON>(),
+  email: z.string().email(),
+});
 export type VerifyAuthenticationInput = z.infer<
   typeof VerifyAuthenticationInputSchema
 >;
@@ -50,9 +52,9 @@ const verifyAuthenticationFlow = ai.defineFlow(
     inputSchema: VerifyAuthenticationInputSchema,
     outputSchema: VerifyAuthenticationOutputSchema,
   },
-  async response => {
+  async ({response, email}) => {
     // In a real app, you would get the user from the session.
-    const user = findUser('dr.evelyn.reed@medconnect.com');
+    const user = findUser(email);
     if (!user) {
       throw new Error('User not found');
     }
