@@ -106,7 +106,6 @@ export default function FloatingButtons() {
                     transition={{ duration: 0.3 }}
                 >
                     <Button
-                        isIconOnly
                         size="icon"
                         aria-label="Return to Dashboard"
                         onClick={handleHomeClick}

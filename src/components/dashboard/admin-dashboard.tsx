@@ -3,6 +3,7 @@ import type { User } from "@/lib/auth";
 import { Users, ShieldCheck, Server, Database } from "lucide-react";
 import DashboardCards from "./dashboard-cards";
 import { FEATURES } from "@/lib/dashboard-features.ts";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 
 const AdminDashboard = ({ user }: { user: User }) => {
@@ -67,8 +68,5 @@ const AdminDashboard = ({ user }: { user: User }) => {
     </div>
   );
 };
-
-// Re-add Card components to be used within the dashboard
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
 export default AdminDashboard;
