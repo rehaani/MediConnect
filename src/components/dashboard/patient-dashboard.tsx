@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import { useContext, useEffect, useRef, useState } from "react";
@@ -154,7 +155,7 @@ const PatientDashboard = ({ user }: { user: User }) => {
 
     // Show a consent-like message before requesting
     setLocationError('Please allow location access to see your live position on the map and help us suggest your preferred language.');
-    map.locate({ setView: false, maxZoom: 16 });
+    map.locate({ setView: false, maxZoom: 16, timeout: 20000 });
     
     // Cleanup function
     return () => {
@@ -165,6 +166,23 @@ const PatientDashboard = ({ user }: { user: User }) => {
     };
 
   }, [isClient, toast, i18n, t]);
+
+  if (!isClient) {
+    return (
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            <Card className="relative z-0 lg:col-span-2">
+                <CardHeader>
+                    <CardTitle className="flex items-center gap-2 font-headline"><MapPin /> {t('Live Location')}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                     <div className="h-[300px] md:h-[400px] w-full rounded-md bg-muted flex items-center justify-center">
+                        <Loader2 className="h-8 w-8 animate-spin" />
+                    </div>
+                </CardContent>
+            </Card>
+        </div>
+    );
+  }
 
   return (
     <>
@@ -257,3 +275,6 @@ const PatientDashboard = ({ user }: { user: User }) => {
 };
 
 export default PatientDashboard;
+
+
+    
