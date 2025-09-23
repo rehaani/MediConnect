@@ -12,7 +12,6 @@ import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "react-i18next";
 import { ToastAction } from "../ui/toast";
-import { useRouter } from "next/navigation";
 
 
 // Mock data for emergency contacts
@@ -24,7 +23,6 @@ const emergencyContacts = [
 const PatientDashboard = ({ user }: { user: User }) => {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null); // To hold the Leaflet map instance
-  const router = useRouter();
   const [isClient, setIsClient] = useState(false);
   const [locationStatus, setLocationStatus] = useState<"loading" | "success" | "error">("loading");
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -33,10 +31,6 @@ const PatientDashboard = ({ user }: { user: User }) => {
   const [isGeocoding, setIsGeocoding] = useState(false);
   const { toast } = useToast();
   const { t, i18n } = useTranslation();
-
-  useEffect(() => {
-    setIsClient(true);
-  }, []);
 
   const mapCountryToLanguage = (code: string | null): {lang: 'en' | 'hi' | 'de', langName: string} => {
     const map: Record<string, {lang: 'en' | 'hi' | 'de', langName: string}> = {
@@ -55,117 +49,127 @@ const PatientDashboard = ({ user }: { user: User }) => {
     // In a real app, you would save this preference to the user's document in Firestore.
     console.log(`Simulating saving language preference: ${lang}`);
   };
+  
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   useEffect(() => {
-    if (!isClient) return;
-    
-    // @ts-ignore - Leaflet is loaded from CDN
-    if (typeof window === 'undefined' || !window.L) {
-        console.error("Leaflet is not loaded");
-        setLocationStatus("error");
-        setLocationError("Map service is currently unavailable. Please try again later.");
-        return;
-    }
-     // If map is already initialized, don't re-initialize
-    if (mapInstanceRef.current || !mapContainerRef.current) {
-        if(mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
-        return;
-    }
-
-    if (!navigator.geolocation) {
-      setLocationStatus("error");
-      setLocationError("Geolocation is not supported by your browser.");
+    if (!isClient) {
       return;
     }
 
-    // @ts-ignore
-    const L = window.L;
+    const initMap = () => {
+      // @ts-ignore - Leaflet is loaded from CDN
+      if (typeof window === 'undefined' || !window.L) {
+          console.error("Leaflet is not loaded");
+          setLocationStatus("error");
+          setLocationError("Map service is currently unavailable. Please try again later.");
+          return;
+      }
+      // If map is already initialized, don't re-initialize
+      if (mapInstanceRef.current || !mapContainerRef.current) {
+          if(mapInstanceRef.current) mapInstanceRef.current.invalidateSize();
+          return;
+      }
 
-    const map = L.map(mapContainerRef.current, {
-        scrollWheelZoom: false, // More user-friendly for embedded maps
-    });
-    mapInstanceRef.current = map;
-
-
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-    }).addTo(map);
-
-    const handleLocationFound = async (e: any) => {
-        if (!mapInstanceRef.current) return;
-        const radius = e.accuracy;
-        const latlng = e.latlng;
-
-        mapInstanceRef.current.setView(latlng, 15);
-
-        L.marker(latlng).addTo(mapInstanceRef.current)
-          .bindPopup(`You are within ${radius.toFixed(0)} meters from this point`).openPopup();
-
-        L.circle(latlng, radius).addTo(mapInstanceRef.current);
-        setLocationStatus("success");
-
-        // Reverse geocoding
-        const cachedCountryCode = localStorage.getItem('countryCode');
-        if (cachedCountryCode) {
-            setCountryCode(cachedCountryCode);
-        } else {
-            try {
-                setIsGeocoding(true);
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`);
-                const data = await response.json();
-                if (data && data.address && data.address.country_code) {
-                    const code = data.address.country_code.toUpperCase();
-                    setCountryCode(code);
-                    localStorage.setItem('countryCode', code);
-
-                    // Language Suggestion Logic
-                    const currentLang = i18n.language;
-                    const { lang, langName } = mapCountryToLanguage(code);
-                    const suggestionShown = sessionStorage.getItem('langSuggestionShown');
-
-                    if (lang !== currentLang && !suggestionShown) {
-                        toast({
-                            title: t("Language Suggestion"),
-                            description: t('LanguageSuggestion', { langName }),
-                            duration: 10000,
-                            action: <ToastAction altText={t("Switch")} onClick={() => handleLanguageSwitch(lang)}>{t("Switch")}</ToastAction>,
-                        });
-                        sessionStorage.setItem('langSuggestionShown', 'true');
-                    }
-                }
-            } catch (error) {
-                console.error("Reverse geocoding failed:", error);
-            } finally {
-                setIsGeocoding(false);
-            }
-        }
-    }
-
-    const handleLocationError = (e: any) => {
-        if (!mapInstanceRef.current) return;
-        console.error("Geolocation error:", e.message);
-        
-        let errorMessage = "Could not access your location. Please enable location services in your browser settings to see your live location and get language suggestions.";
-        if (e.code === 1) { // User denied permission
-            errorMessage = "You have blocked location access. To use this feature, please enable location permissions for this site in your browser settings.";
-        } else if (e.code === 2) { // Position unavailable
-             errorMessage = "Your location could not be determined at this time. Please try again later.";
-        } else if (e.code === 3) { // Timeout
-            errorMessage = "The request to get your location timed out. Please check your network connection and try again.";
-        }
-        
-        // Set a default view (e.g., center of India)
-        mapInstanceRef.current.setView([20.5937, 78.9629], 5);
+      if (!navigator.geolocation) {
         setLocationStatus("error");
-        setLocationError(errorMessage);
-    }
-    
-    map.on('locationfound', handleLocationFound);
-    map.on('locationerror', handleLocationError);
+        setLocationError("Geolocation is not supported by your browser.");
+        return;
+      }
 
-    // Show a consent-like message before requesting
-    setLocationError('Please allow location access to see your live position on the map and help us suggest your preferred language.');
-    map.locate({ setView: false, maxZoom: 16, timeout: 20000 });
+      // @ts-ignore
+      const L = window.L;
+
+      const map = L.map(mapContainerRef.current, {
+          scrollWheelZoom: false, // More user-friendly for embedded maps
+      });
+      mapInstanceRef.current = map;
+
+
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+      }).addTo(map);
+
+      const handleLocationFound = async (e: any) => {
+          if (!mapInstanceRef.current) return;
+          const radius = e.accuracy;
+          const latlng = e.latlng;
+
+          mapInstanceRef.current.setView(latlng, 15);
+
+          L.marker(latlng).addTo(mapInstanceRef.current)
+            .bindPopup(`You are within ${radius.toFixed(0)} meters from this point`).openPopup();
+
+          L.circle(latlng, radius).addTo(mapInstanceRef.current);
+          setLocationStatus("success");
+
+          // Reverse geocoding
+          const cachedCountryCode = localStorage.getItem('countryCode');
+          if (cachedCountryCode) {
+              setCountryCode(cachedCountryCode);
+          } else {
+              try {
+                  setIsGeocoding(true);
+                  const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${latlng.lat}&lon=${latlng.lng}`);
+                  const data = await response.json();
+                  if (data && data.address && data.address.country_code) {
+                      const code = data.address.country_code.toUpperCase();
+                      setCountryCode(code);
+                      localStorage.setItem('countryCode', code);
+
+                      // Language Suggestion Logic
+                      const currentLang = i18n.language;
+                      const { lang, langName } = mapCountryToLanguage(code);
+                      const suggestionShown = sessionStorage.getItem('langSuggestionShown');
+
+                      if (lang !== currentLang && !suggestionShown) {
+                          toast({
+                              title: t("Language Suggestion"),
+                              description: t('LanguageSuggestion', { langName }),
+                              duration: 10000,
+                              action: <ToastAction altText={t("Switch")} onClick={() => handleLanguageSwitch(lang)}>{t("Switch")}</ToastAction>,
+                          });
+                          sessionStorage.setItem('langSuggestionShown', 'true');
+                      }
+                  }
+              } catch (error) {
+                  console.error("Reverse geocoding failed:", error);
+              } finally {
+                  setIsGeocoding(false);
+              }
+          }
+      }
+
+      const handleLocationError = (e: any) => {
+          if (!mapInstanceRef.current) return;
+          console.error("Geolocation error:", e.message);
+          
+          let errorMessage = "Could not access your location. Please enable location services in your browser settings to see your live location and get language suggestions.";
+          if (e.code === 1) { // User denied permission
+              errorMessage = "You have blocked location access. To use this feature, please enable location permissions for this site in your browser settings.";
+          } else if (e.code === 2) { // Position unavailable
+              errorMessage = "Your location could not be determined at this time. Please try again later.";
+          } else if (e.code === 3) { // Timeout
+              errorMessage = "The request to get your location timed out. Please check your network connection and try again.";
+          }
+          
+          // Set a default view (e.g., center of India)
+          mapInstanceRef.current.setView([20.5937, 78.9629], 5);
+          setLocationStatus("error");
+          setLocationError(errorMessage);
+      }
+      
+      map.on('locationfound', handleLocationFound);
+      map.on('locationerror', handleLocationError);
+
+      // Show a consent-like message before requesting
+      setLocationError('Please allow location access to see your live position on the map and help us suggest your preferred language.');
+      map.locate({ setView: false, maxZoom: 16, timeout: 20000 });
+    };
+
+    initMap();
     
     // Cleanup function
     return () => {
@@ -285,6 +289,3 @@ const PatientDashboard = ({ user }: { user: User }) => {
 };
 
 export default PatientDashboard;
-
-
-    

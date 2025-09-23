@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from "react";
@@ -7,7 +8,7 @@ import { Card } from '@/components/ui/card';
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 import { useRouter } from 'next/navigation';
-import { Bot, Calendar, FileText, HeartPulse, Pill, User as UserIcon, Shield, Users, MonitorPlay, UserCog, BarChart, Wrench, FlaskConical, LifeBuoy } from "lucide-react";
+import { Bot, Calendar, FileText, HeartPulse, Pill, User as UserIcon, Shield, Users, MonitorPlay, UserCog, BarChart, Wrench, FlaskConical, LifeBuoy, MessageSquareDashed } from "lucide-react";
 
 const icons: { [key: string]: React.ReactNode } = {
   Bot: <Bot />,
@@ -24,6 +25,7 @@ const icons: { [key: string]: React.ReactNode } = {
   Wrench: <Wrench />,
   FlaskConical: <FlaskConical />,
   LifeBuoy: <LifeBuoy />,
+  MessageSquareDashed: <MessageSquareDashed />,
 };
 
 
@@ -65,10 +67,8 @@ export default function DashboardCards({ features }: DashboardCardsProps) {
             <Card 
               className={cn(
                 "text-white p-4 h-[140px] md:h-[180px] flex flex-col justify-center items-center text-center transition-shadow duration-300 ease-in-out hover:shadow-lg",
-                !feature.bgColor.startsWith('bg-') && "text-white"
+                feature.bgColor
               )}
-              style={{ backgroundColor: feature.bgColor.startsWith('bg-') ? undefined : feature.bgColor }}
-              {...(feature.bgColor.startsWith('bg-') && { className: `p-4 h-[140px] md:h-[180px] flex flex-col justify-center items-center text-center transition-shadow duration-300 ease-in-out hover:shadow-lg text-white ${feature.bgColor}` })}
             >
               <div className="mb-2">
                 {React.cloneElement(icons[feature.icon] as React.ReactElement, { className: "h-8 w-8 md:h-10 md:w-10" })}

@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { User } from "@/lib/auth";
@@ -8,7 +9,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
@@ -171,5 +171,3 @@ const ProviderDashboard = ({ user }: { user: User }) => {
 };
 
 export default ProviderDashboard;
-
-    
