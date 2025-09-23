@@ -26,6 +26,14 @@ const users: User[] = [
     id: 'user-evelyn-reed',
     email: 'dr.evelyn.reed@medconnect.com',
   },
+   {
+    id: 'user-alex-doe',
+    email: 'alex.doe@example.com',
+  },
+  {
+    id: 'user-sam-chen',
+    email: 's.chen.admin@medconnect.com',
+  }
 ];
 
 // Mock Credentials Table
