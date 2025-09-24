@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import DashboardCards from "@/components/dashboard/dashboard-cards";
 import PatientDashboard from "@/components/dashboard/patient-dashboard";
 import { FEATURES } from "@/lib/dashboard-features.ts";
+import ClientOnly from "@/components/util/client-only";
 
 
 export default function PatientDashboardPage() {
@@ -55,7 +56,9 @@ export default function PatientDashboardPage() {
         <h1 className="text-3xl font-headline mb-2">{t('Dashboard')}</h1>
         <p className="text-muted-foreground mb-6">{t("Welcome back, {{name}}. Here's your personalized view.", { name: user.name })}</p>
       </div>
-      <DashboardCards features={patientFeatures} />
+      <ClientOnly>
+        <DashboardCards features={patientFeatures} />
+      </ClientOnly>
       <PatientDashboard user={user} />
     </div>
   );

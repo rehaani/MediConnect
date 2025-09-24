@@ -10,6 +10,7 @@ import { MenuProvider } from '@/context/menu-provider';
 import I18nProvider from '@/context/i18n-provider';
 import FloatingButtons from '@/components/layout/floating-buttons';
 import { Montserrat, Roboto_Slab, Nunito } from 'next/font/google';
+import ClientOnly from '@/components/util/client-only';
 
 const montserrat = Montserrat({
   subsets: ['latin'],
@@ -33,7 +34,9 @@ const nunito = Nunito({
 function RootLayoutContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="relative flex min-h-screen flex-col">
-      <FloatingButtons />
+      <ClientOnly>
+        <FloatingButtons />
+      </ClientOnly>
       <main className="flex-1">{children}</main>
     </div>
   );

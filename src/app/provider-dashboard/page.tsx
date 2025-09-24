@@ -3,6 +3,7 @@ import ProviderDashboard from "@/components/dashboard/provider-dashboard";
 import DashboardCards from "@/components/dashboard/dashboard-cards";
 import { getCurrentUser } from "@/lib/auth";
 import { FEATURES } from "@/lib/dashboard-features.ts";
+import ClientOnly from "@/components/util/client-only";
 
 export default async function ProviderDashboardPage() {
   const user = await getCurrentUser('provider');
@@ -14,7 +15,9 @@ export default async function ProviderDashboardPage() {
         <h1 className="text-3xl font-headline mb-2">Provider Dashboard</h1>
         <p className="text-muted-foreground mb-6">Welcome back, {user.name}. Here's an overview of your day.</p>
       </div>
-      <DashboardCards features={providerFeatures} />
+      <ClientOnly>
+        <DashboardCards features={providerFeatures} />
+      </ClientOnly>
       <ProviderDashboard user={user} />
     </div>
   );
