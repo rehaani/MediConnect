@@ -22,6 +22,11 @@ export default function FloatingButtons() {
 
     useEffect(() => {
         setIsMounted(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isMounted) return;
+
         async function fetchUser() {
             try {
                 // Determine role from path to fetch the correct user for the menu
@@ -39,7 +44,7 @@ export default function FloatingButtons() {
             }
         }
         fetchUser();
-    }, [pathname]);
+    }, [pathname, isMounted]);
     
     const handleHomeClick = () => {
         let role: UserRole = 'patient'; // Default to patient
