@@ -59,7 +59,9 @@ export default function PatientDashboardPage() {
       <ClientOnly>
         <DashboardCards features={patientFeatures} />
       </ClientOnly>
-      <PatientDashboard user={user} />
+      <ClientOnly>
+        <PatientDashboard user={user} />
+      </ClientOnly>
     </div>
   );
 }
