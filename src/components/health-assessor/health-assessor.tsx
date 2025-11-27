@@ -49,17 +49,26 @@ const formSchema = z.object({
   photo: z.any().optional(),
   checkedSymptoms: z.array(z.string()).optional(),
   painLevel: z.number().min(0).max(10),
+  weightKg: z.coerce.number().min(1, { message: "Weight is required." }).optional(),
+  heightCm: z.coerce.number().min(1, { message: "Height is required." }).optional(),
 });
 
 type FormData = z.infer<typeof formSchema>;
 
 const stepFields: (keyof FormData)[][] = [
-    ['age', 'gender', 'medicalHistory'], // Step 1
+    ['age', 'gender', 'medicalHistory', 'weightKg', 'heightCm'], // Step 1
     ['symptoms', 'photo'], // Step 2
     ['checkedSymptoms'], // Step 3
     ['painLevel'], // Step 4
     [], // Step 5 (Review)
 ];
+
+const calculateBmi = (weightKg?: number, heightCm?: number): number | undefined => {
+    if (!weightKg || !heightCm) return undefined;
+    if (heightCm === 0) return undefined;
+    const heightM = heightCm / 100;
+    return parseFloat((weightKg / (heightM * heightM)).toFixed(1));
+};
 
 export default function HealthAssessor() {
   const [currentStep, setCurrentStep] = useState(1);
@@ -81,6 +90,8 @@ export default function HealthAssessor() {
       photo: null,
       checkedSymptoms: [],
       painLevel: 2,
+      weightKg: 65,
+      heightCm: 165,
     },
   });
 
@@ -115,6 +126,8 @@ export default function HealthAssessor() {
           ...(values.checkedSymptoms && values.checkedSymptoms.length > 0 ? [`Checked symptoms: ${values.checkedSymptoms.join(', ')}`] : []),
           `Pain Level: ${values.painLevel}/10`
         ].join('\n');
+        
+        const bmi = calculateBmi(values.weightKg, values.heightCm);
 
         const textInput: HealthAssessmentInput = {
           symptoms: combinedSymptoms,
@@ -122,6 +135,9 @@ export default function HealthAssessor() {
             age: values.age,
             gender: values.gender as 'male' | 'female' | 'other',
             medicalHistory: values.medicalHistory,
+            weightKg: values.weightKg,
+            heightCm: values.heightCm,
+            bmi: bmi,
           }
         };
         assessmentPromises.push(healthAssessment(textInput));
@@ -180,6 +196,10 @@ export default function HealthAssessor() {
   const totalSteps = 6;
   const progress = (currentStep / totalSteps) * 100;
 
+  const currentWeight = form.watch('weightKg');
+  const currentHeight = form.watch('heightCm');
+  const bmi = calculateBmi(currentWeight, currentHeight);
+
   return (
     <Card>
       <CardHeader>
@@ -231,6 +251,24 @@ export default function HealthAssessor() {
                      <FormMessage>{form.formState.errors.gender?.message}</FormMessage>
                   </div>
                 </div>
+                <div className="grid md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                        <Label htmlFor="weightKg">Weight (kg)</Label>
+                        <Input id="weightKg" type="number" {...form.register('weightKg')} />
+                        <FormMessage>{form.formState.errors.weightKg?.message}</FormMessage>
+                    </div>
+                     <div className="space-y-2">
+                        <Label htmlFor="heightCm">Height (cm)</Label>
+                        <Input id="heightCm" type="number" {...form.register('heightCm')} />
+                        <FormMessage>{form.formState.errors.heightCm?.message}</FormMessage>
+                    </div>
+                </div>
+                 {bmi && (
+                    <Alert>
+                        <AlertTitle>Calculated BMI</AlertTitle>
+                        <AlertDescription>Your calculated BMI is {bmi}.</AlertDescription>
+                    </Alert>
+                )}
                  <div className="space-y-2">
                   <Label htmlFor="medicalHistory">Relevant Medical History (Optional)</Label>
                   <Textarea id="medicalHistory" placeholder="e.g., Asthma, high blood pressure, penicillin allergy..." {...form.register('medicalHistory')} rows={4} />
@@ -343,6 +381,9 @@ export default function HealthAssessor() {
                     <div className="p-4 border rounded-lg space-y-3 bg-muted/50 text-sm">
                         <p><strong>Age:</strong> {form.getValues('age')}</p>
                         <p><strong>Gender:</strong> <span className="capitalize">{form.getValues('gender')}</span></p>
+                        <p><strong>Weight:</strong> {form.getValues('weightKg') || 'N/A'} kg</p>
+                        <p><strong>Height:</strong> {form.getValues('heightCm') || 'N/A'} cm</p>
+                         {bmi && <p><strong>BMI:</strong> {bmi}</p>}
                         <p><strong>Medical History:</strong> {form.getValues('medicalHistory') || 'N/A'}</p>
                         <p><strong>Main Symptoms:</strong> {form.getValues('symptoms')}</p>
                         <p><strong>Additional Symptoms:</strong> {form.getValues('checkedSymptoms')?.join(', ') || 'None'}</p>

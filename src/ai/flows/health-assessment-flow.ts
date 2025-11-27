@@ -1,3 +1,4 @@
+
 'use server';
 /**
  * @fileOverview An AI agent that performs a health assessment based on user-provided symptoms.
@@ -36,12 +37,15 @@ Analyze the provided symptoms and user context to determine a risk level, provid
 {{#if userContext}}
 - Age: {{userContext.age}}
 - Gender: {{userContext.gender}}
+{{#if userContext.bmi}}
+- BMI: {{userContext.bmi}}
+{{/if}}
 - Medical History: {{userContext.medicalHistory}}
 {{/if}}
 
 **Your Task:**
 1.  **Assess Risk:** Classify the risk as 'Low', 'Medium', 'High', or 'Emergency'.
-2.  **Provide Assessment:** Briefly summarize the possible implications of the symptoms. Do not provide a definitive diagnosis.
+2.  **Provide Assessment:** Briefly summarize the possible implications of the symptoms, taking the user's BMI into account if provided.
 3.  **Recommend Next Steps:** Suggest a course of action (e.g., monitor at home, schedule a doctor's appointment, go to an urgent care clinic, or seek immediate emergency help). If the risk is 'Emergency', the recommendation MUST start with "Contact local emergency services immediately."
 4.  **Suggest Specialist (Optional):** If applicable, suggest a type of specialist to consult (e.g., Cardiologist, Neurologist, etc.).
 `,

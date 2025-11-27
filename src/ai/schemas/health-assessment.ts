@@ -1,3 +1,4 @@
+
 /**
  * @fileOverview Schemas for the health assessment and symptom image processing flows.
  *
@@ -26,6 +27,9 @@ export const HealthAssessmentInputSchema = z.object({
         .describe(
           "The user's relevant medical history, including chronic conditions, allergies, and current medications."
         ),
+      weightKg: z.number().optional().describe("The user's weight in kilograms."),
+      heightCm: z.number().optional().describe("The user's height in centimeters."),
+      bmi: z.number().optional().describe("The user's calculated Body Mass Index (BMI)."),
     })
     .optional(),
 });
